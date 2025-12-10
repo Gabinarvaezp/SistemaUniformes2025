@@ -274,10 +274,20 @@
         /* --- HISTORIAL DE VENTAS --- */
         #ventas-table {
             width: 100%;
-            /* ... estilos ... */
+            border-collapse: collapse;
+            text-align: center;
         }
 
-        /* ... otros estilos de historial, cotizador ... */
+        #ventas-table th, #ventas-table td {
+            padding: 10px 5px;
+            border: 1px solid #eee;
+        }
+
+        #ventas-table thead th {
+             background-color: var(--color-secondary);
+             color: var(--color-primary);
+             font-size: 0.85em;
+        }
         
         .status-entregado {
             color: var(--color-success);
@@ -430,7 +440,7 @@
                         </tr>
                     </thead>
                     <tbody id="recibo-productos-tbody">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
             <button class="btn btn-secondary" style="width: auto; padding: 8px 15px; margin: 15px 0 20px 0; display: inline-block;" onclick="addRow()">+ Agregar Fila</button>
@@ -502,7 +512,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
             <button class="btn btn-danger" onclick="resetDatabase()">❌ ELIMINAR TODO EL HISTORIAL</button>
@@ -526,6 +536,12 @@
         // Función para formatear el input de precios (solo números, sin separadores de miles)
         const formatPriceInput = (value) => {
             return String(value).replace(/[^0-9]/g, '');
+        }
+
+        // Función para convertir a formato COP (Moneda Colombiana)
+        function formatCOP(number) {
+            if (typeof number !== 'number' || isNaN(number)) return '$ 0';
+            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(number);
         }
 
         // Lista completa de todos los productos y sus precios. Data basada en las imágenes.
@@ -608,6 +624,7 @@
         // --- 2. Variables Globales y Estado ---
         let currentSection = 'inicio';
         let selectedItems = {}; 
+        let cotizacionItems = []; // Para el cotizador
         let ventas = JSON.parse(localStorage.getItem('ventasDB')) || [];
         let currentRowId = 0; 
         let tomSelectInstances = {}; // Para guardar instancias de Tom Select
@@ -632,21 +649,22 @@
 
             if (sectionId === 'cotizador') {
                 loadCotizadorTallas();
+                // Inicializar select individual del cotizador con todos los SKUs
                 initializeTomSelect('cot-prenda-select', getFilteredSkuOptions('todos'));
                 calculateTotal();
             } else if (sectionId === 'historial') {
                 loadVentasTable();
             } else if (sectionId === 'registro-ventas') {
                 document.getElementById('reg-fecha').value = new Date().toLocaleDateString('es-CO', {day: '2-digit', month: '2-digit', year: '2-digit'}).replace(/\//g, '.');
+                // Asegurar que haya al menos una fila y se inicialicen los selects
+                if (Object.keys(selectedItems).length === 0) {
+                    addRow(); // Asegura la primera fila al entrar a registro de ventas
+                }
                 loadReciboRows();
                 calculateReciboTotal();
             }
         }
 
-        function formatCOP(number) {
-            if (typeof number !== 'number' || isNaN(number)) return '$ 0';
-            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(number);
-        }
 
         // Filtra las opciones de SKU según el nivel (primaria, bachillerato o todos)
         function getFilteredSkuOptions(nivel) {
@@ -654,7 +672,8 @@
             const isManual = nivel === 'manual';
             
             ALL_SKUS_LIST.sort((a, b) => a.name.localeCompare(b.name)).forEach(sku => {
-                if (isManual || nivel === 'todos' || sku.nivel === 'todos' || sku.nivel === nivel) {
+                // Filtra por nivel, o si es "todos", o si es un producto "todos"
+                if (isManual || nivel === 'todos' || sku.nivel === 'todos' || sku.nivel.includes(nivel)) {
                     filteredList.push({
                         value: sku.skuKey, 
                         text: `${sku.name} T${sku.talla} (${formatCOP(sku.price)})`
@@ -672,6 +691,7 @@
             // Destruir si ya existe
             if (tomSelectInstances[elementId]) {
                 tomSelectInstances[elementId].destroy();
+                delete tomSelectInstances[elementId];
             }
             
             // Cargar opciones
@@ -690,6 +710,7 @@
                 placeholder: placeholder,
                 maxItems: 1,
                 create: false,
+                onChange: elementId.includes('reg-prod-select') ? (value) => handleProductChange(elementId.split('-')[3], value) : undefined,
             });
             
             if (initialValue) {
@@ -702,14 +723,30 @@
 
 
         // --- 4. Funciones del COTIZADOR RÁPIDO ---
-        // ... (Funciones de cotizador se mantienen igual) ...
-
+        
         function loadCotizadorTallas() {
             const nivelSelect = document.getElementById('cot-nivel-select');
             const tallaSelect = document.getElementById('cot-talla-select');
             tallaSelect.innerHTML = '<option value="">Seleccione Talla</option>';
             const nivel = nivelSelect.value;
-            const tallas = getTallasPorNivel(nivel);
+            // Unir tallas de todos los productos del nivel seleccionado para mostrar las opciones.
+            const nivelKey = nivel.split('-')[0]; // primaria o bachillerato
+            let tallasSet = new Set();
+            PRODUCTOS_DATA.forEach(prod => {
+                if (prod.nivel === nivelKey) {
+                    Object.keys(prod.prices).forEach(talla => tallasSet.add(talla));
+                }
+            });
+
+            const tallas = Array.from(tallasSet).sort((a, b) => {
+                const isNumA = !isNaN(a);
+                const isNumB = !isNaN(b);
+                if (isNumA && isNumB) return parseInt(a) - parseInt(b);
+                if (isNumA) return -1;
+                if (isNumB) return 1;
+                return a.localeCompare(b);
+            });
+            
             tallas.forEach(talla => {
                 const option = document.createElement('option');
                 option.value = talla;
@@ -717,740 +754,658 @@
                 tallaSelect.appendChild(option);
             });
         }
-
-        function getTallasPorNivel(nivel) {
-            let tallas = new Set();
-            const idsToCheck = UNIFORMES_COMPLETOS[nivel];
-            
-            idsToCheck.forEach(id => {
-                const product = PRODUCTOS_MAP[id];
-                if (product) {
-                    Object.keys(product.prices).forEach(t => tallas.add(t));
-                }
-            });
-
-            // Ordenamiento (numérico primero, luego alfabético)
-            return Array.from(tallas).sort((a, b) => {
-                const numA = parseInt(a);
-                const numB = parseInt(b);
-                if (isNaN(numA) && isNaN(numB)) return a.localeCompare(b);
-                if (isNaN(numA)) return 1; 
-                if (isNaN(numB)) return -1;
-                return numA - numB;
-            });
-        }
-
-        function addPrendaIndividual() {
-            const ts = tomSelectInstances['cot-prenda-select'];
-            const skuKey = ts ? ts.getValue() : document.getElementById('cot-prenda-select').value;
-            const qty = parseInt(document.getElementById('cot-qty-indiv').value) || 1;
-            
-            if (!skuKey || qty <= 0) {
-                alert('Por favor, seleccione un artículo/talla y una cantidad válida.');
-                return; 
-            }
-
-            const [id, talla, priceString] = skuKey.split('|');
-            const price = cleanPrice(priceString);
-            const product = PRODUCTOS_MAP[id];
-            const key = `${id}|${talla}`;
-            
-            if (selectedItems[key]) {
-                selectedItems[key].qty += qty;
-            } else {
-                selectedItems[key] = {
-                    name: product.name, 
-                    size: talla, 
-                    price: price, 
-                    qty: qty 
-                };
-            }
-            
-            calculateTotal();
-            
-            if (ts) ts.setValue(''); 
-            document.getElementById('cot-qty-indiv').value = 1;
-        }
-
+        
         function addUniformeCompleto() {
             const nivel = document.getElementById('cot-nivel-select').value;
             const talla = document.getElementById('cot-talla-select').value;
-            
+
             if (!talla) {
-                alert('Por favor, seleccione una talla base para el uniforme completo.');
-                return; 
+                alert("Por favor, seleccione una talla base.");
+                return;
             }
 
             const prendasIds = UNIFORMES_COMPLETOS[nivel];
+            if (!prendasIds) {
+                alert("Nivel no válido.");
+                return;
+            }
+
             let itemsAdded = 0;
-            
             prendasIds.forEach(id => {
-                const product = PRODUCTOS_MAP[id];
-                
-                let finalTalla = talla;
-                let price = 0;
-                
-                if (product && product.prices[talla]) {
-                    price = product.prices[talla];
-                } else if (product) {
-                     // Lógica de respaldo simple: encuentra la talla más cercana o la más pequeña si la exacta no existe
-                     const availablePrices = product.prices;
-                     
-                     if (Object.keys(availablePrices).length > 0) {
-                        finalTalla = Object.keys(availablePrices).sort((a, b) => {
-                            const numA = parseInt(a);
-                            const numB = parseInt(b);
-                            if (isNaN(numA) && isNaN(numB)) return a.localeCompare(b);
-                            if (isNaN(numA)) return 1; 
-                            if (isNaN(numB)) return -1;
-                            // Si la talla de referencia (talla) es numérica, trata de encontrar la más cercana, sino usa la más pequeña disponible.
-                            return numA - numB; 
-                        })[0];
-                        price = product.prices[finalTalla];
-                     } else {
-                          return; 
-                     }
-                } else {
-                    return; 
-                }
-                
-                if (price > 0) {
-                    const key = `${id}|${finalTalla}`;
-                    if (selectedItems[key]) {
-                        selectedItems[key].qty += 1;
-                    } else {
-                        selectedItems[key] = {
-                            name: product.name, 
-                            size: finalTalla, 
-                            price: price, 
-                            qty: 1 
-                        };
-                    }
+                const producto = PRODUCTOS_MAP[id];
+                if (producto && producto.prices[talla]) {
+                    cotizacionItems.push({
+                        id: id,
+                        name: producto.name,
+                        talla: talla,
+                        price: producto.prices[talla],
+                        qty: 1
+                    });
                     itemsAdded++;
+                } else if (producto && id === "JARDINERA_P" && talla < 10 && nivel === 'primaria-nina') {
+                    // Si es niña de primaria y la talla es pequeña, añadir Bata en lugar de Jardinera
+                    // Se asume que Bata Niña y Jardinera (P) no se usan al mismo tiempo.
+                } else if (producto && id === "BATA_NINA" && talla >= 10 && nivel === 'primaria-nina') {
+                    // Si es niña de primaria y la talla es grande, añadir Jardinera en lugar de Bata
+                    // No hacer nada, se añade Jardinera
+                } else if (producto && producto.prices[talla] === undefined) {
+                    // Si el producto no tiene esa talla, se ignora o se añade una nota (simplificado, solo ignorar)
+                    console.warn(`Prenda ${producto.name} no disponible en Talla ${talla}.`);
                 }
             });
-            
-            if (itemsAdded === 0) {
-                alert('No se pudieron agregar prendas para la talla y el nivel seleccionados.');
-            }
 
-            calculateTotal();
+            if (itemsAdded === 0) {
+                 alert("No se pudo añadir el uniforme. Verifique la combinación Nivel/Talla.");
+            } else {
+                 renderCotizacionItems();
+            }
         }
 
-        function updateCotizacionItem(key, qty) {
-            qty = parseInt(qty) || 0;
-            if (qty > 0) {
-                selectedItems[key].qty = qty;
-            } else {
-                delete selectedItems[key];
+        function addPrendaIndividual() {
+            const selectValue = tomSelectInstances['cot-prenda-select'] ? tomSelectInstances['cot-prenda-select'].getValue() : '';
+            const qty = cleanPrice(document.getElementById('cot-qty-indiv').value);
+
+            if (!selectValue) {
+                alert("Por favor, seleccione un artículo.");
+                return;
             }
-            calculateTotal();
+            if (qty <= 0) {
+                alert("La cantidad debe ser mayor a 0.");
+                return;
+            }
+
+            const [id, talla, priceStr] = selectValue.split('|');
+            const price = cleanPrice(priceStr);
+
+            cotizacionItems.push({
+                id: id,
+                name: PRODUCTOS_MAP[id] ? PRODUCTOS_MAP[id].name : id,
+                talla: talla,
+                price: price,
+                qty: qty
+            });
+
+            renderCotizacionItems();
+        }
+
+        function removeCotizacionItem(index) {
+            cotizacionItems.splice(index, 1);
+            renderCotizacionItems();
         }
 
         function calculateTotal() {
-            let total = 0;
-            const itemsList = document.getElementById('cotizacion-items-list');
-            itemsList.innerHTML = '';
-
-            const keys = Object.keys(selectedItems).sort();
-            
-            keys.forEach(key => {
-                const item = selectedItems[key];
-                const subtotal = item.price * item.qty;
-                total += subtotal;
-
-                itemsList.innerHTML += `
-                    <div class="cotizacion-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #eee; padding: 5px 0;">
-                        <span class="qty-name" style="flex: 2; text-align: left; font-size: 14px;">${item.name} (T${item.size})</span>
-                        <div style="flex: 1; display: flex; align-items: center; justify-content: flex-end;">
-                            <input type="number" value="${item.qty}" min="0" style="width: 50px; height: 30px; text-align: center; margin-right: 10px;" 
-                                onchange="updateCotizacionItem('${key}', this.value)">
-                            <span class="price-total" style="width: 90px; text-align: right; font-weight: 600; font-size: 1.1em;">${formatCOP(subtotal)}</span>
-                        </div>
-                    </div>
-                `;
-            });
-
+            const total = cotizacionItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
             document.getElementById('total-cotizacion').textContent = formatCOP(total);
-            document.getElementById('btn-whatsapp').disabled = total === 0;
-            
-            if (total === 0) {
-                itemsList.innerHTML = '<p style="text-align: center; color: #777;">Aún no se han agregado prendas.</p>';
-            }
 
-            return total;
+            const btnWhatsapp = document.getElementById('btn-whatsapp');
+            if (total > 0) {
+                btnWhatsapp.disabled = false;
+            } else {
+                btnWhatsapp.disabled = true;
+            }
+        }
+
+        function renderCotizacionItems() {
+            const list = document.getElementById('cotizacion-items-list');
+            if (cotizacionItems.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #777;">Aún no se han agregado prendas.</p>';
+            } else {
+                let html = '<ul style="list-style: none; padding: 0;">';
+                cotizacionItems.forEach((item, index) => {
+                    const subtotal = item.price * item.qty;
+                    html += `
+                        <li style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dotted #ddd; padding: 8px 0;">
+                            <span style="flex: 3; text-align: left;">${item.qty}x ${item.name} T${item.talla}</span>
+                            <span style="flex: 1; text-align: right; font-weight: 600;">${formatCOP(subtotal)}</span>
+                            <button class="btn-delete" onclick="removeCotizacionItem(${index})" style="flex: 0 0 30px; margin-left: 10px;">🗑️</button>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                list.innerHTML = html;
+            }
+            calculateTotal();
         }
 
         function resetCotizacion() {
-            if (confirm('¿Está seguro de que desea borrar la cotización actual?')) {
-                selectedItems = {};
-                document.getElementById('cot-cliente-nombre').value = '';
-                document.getElementById('cot-cliente-telefono').value = '';
-                calculateTotal();
+            cotizacionItems = [];
+            document.getElementById('cot-cliente-nombre').value = '';
+            document.getElementById('cot-cliente-telefono').value = '';
+            document.getElementById('cot-qty-indiv').value = 1;
+            renderCotizacionItems();
+            if (tomSelectInstances['cot-prenda-select']) {
+                tomSelectInstances['cot-prenda-select'].clear();
             }
         }
 
         function enviarWhatsapp() {
-            const clientName = document.getElementById('cot-cliente-nombre').value;
-            const clientPhone = document.getElementById('cot-cliente-telefono').value.replace(/\D/g, ''); 
-            const total = document.getElementById('total-cotizacion').textContent;
-
-            if (Object.keys(selectedItems).length === 0) {
-                alert('No hay ítems para cotizar.');
+            if (cotizacionItems.length === 0) {
+                alert("Agregue productos para cotizar primero.");
                 return;
             }
 
-            let message = `*¡COTIZACIÓN UNIFORMES DON BOSCO!* %0A%0A`;
-            if (clientName) {
-                message += `Estimado(a) *${clientName}*, %0A`;
-            }
-            message += `Detalle de la cotización:%0A%0A`;
-            
-            let itemsList = '';
-            Object.keys(selectedItems).sort().forEach(key => {
-                const item = selectedItems[key];
-                const subtotal = formatCOP(item.price * item.qty);
-                itemsList += `👉 ${item.qty}x ${item.name} Talla ${item.size} x ${formatCOP(item.price)} = *${subtotal}*%0A`;
+            const cliente = document.getElementById('cot-cliente-nombre').value || 'Cliente';
+            const telefono = document.getElementById('cot-cliente-telefono').value;
+            const total = cotizacionItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+            let mensaje = `👋 Hola, soy ${cliente}. Me gustaría cotizar los siguientes uniformes:\n\n`;
+
+            cotizacionItems.forEach(item => {
+                const subtotal = item.price * item.qty;
+                mensaje += `* ${item.qty}x ${item.name} T${item.talla} (${formatCOP(item.price)} c/u) = ${formatCOP(subtotal)}\n`;
             });
-            
-            message += itemsList;
-            message += `%0A*TOTAL FINAL:* ${total}%0A%0A`;
-            message += `Precios válidos para el año en curso. ¡Gracias por su confianza!%0A%0A`;
-            message += `Para confirmar el pedido, contáctanos: ${WHATSAPP_NEGOCIO}`;
 
-            const targetPhone = clientPhone || WHATSAPP_NEGOCIO;
-            const fullPhone = targetPhone.startsWith('57') ? targetPhone : '57' + targetPhone;
+            mensaje += `\n*TOTAL A PAGAR: ${formatCOP(total)}*\n\n`;
+            mensaje += "Por favor, confírmenme la disponibilidad. ¡Gracias!";
 
-            const whatsappURL = `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodeURIComponent(decodeURIComponent(message))}`;
-            window.open(whatsappURL, '_blank');
+            const url = `https://wa.me/${WHATSAPP_NEGOCIO}?text=${encodeURIComponent(mensaje)}`;
+            window.open(url, '_blank');
         }
 
+        // --- 5. Funciones del REGISTRO DE VENTA ---
 
-        // --- 5. Funciones de REGISTRO DE VENTAS ---
+        function handleProductChange(rowId, selectValue) {
+            const isManual = document.getElementById('reg-nivel-ciclo').value === 'manual';
+            const qtyInput = document.getElementById(`reg-qty-${rowId}`);
+            const priceInput = document.getElementById(`reg-unit-price-${rowId}`);
 
-        function loadReciboRows() {
-            const tbody = document.getElementById('recibo-productos-tbody');
-            tbody.innerHTML = '';
-            currentRowId = 0;
-            // Cargar 4 filas vacías por defecto
-            for (let i = 0; i < 4; i++) {
-                addRow();
-            }
-        }
-
-        function resetReciboSelects() {
-            const nivel = document.getElementById('reg-nivel-ciclo').value;
-            const tbody = document.getElementById('recibo-productos-tbody');
-            const isManual = nivel === 'manual';
-            
-            // Destruir todas las instancias de Tom Select
-            Object.keys(tomSelectInstances).filter(key => key.startsWith('item-select-')).forEach(key => {
-                if (tomSelectInstances[key]) tomSelectInstances[key].destroy();
-                delete tomSelectInstances[key];
-            });
-            
-            // Reconstruir las filas con la configuración de nivel/manual
-            for (let i = 0; i < tbody.rows.length; i++) {
-                const row = tbody.rows[i];
-                const rowId = row.id.split('-')[1];
-                const cells = row.cells;
+            if (selectValue) {
+                const [id, talla, priceStr] = selectValue.split('|');
+                const price = cleanPrice(priceStr);
+                const name = PRODUCTOS_MAP[id] ? PRODUCTOS_MAP[id].name : id;
                 
-                // 1. Columna ARTÍCULO
-                const selectCell = cells[1];
-                const unitPriceInput = cells[3].querySelector('input');
-                const tallaInput = cells[2].querySelector('input');
-                const qtyInput = cells[0].querySelector('input');
+                selectedItems[rowId] = {
+                    qty: cleanPrice(qtyInput.value) || 1,
+                    name: name,
+                    talla: talla,
+                    price: price,
+                    entregado: document.getElementById(`reg-entregado-${rowId}`).checked
+                };
                 
-                // Limpiar valores
-                tallaInput.value = '';
-                unitPriceInput.value = '0';
-                qtyInput.value = '1';
-
-                if (isManual) {
-                    // Cambiar de select a input
-                    selectCell.innerHTML = `<input type="text" value="" class="item-name" placeholder="Escribir nombre del artículo">`;
-                    // Desbloquear precio unitario para entrada manual
-                    unitPriceInput.disabled = false;
-                } else {
-                    // Cambiar de input a select y re-inicializar Tom Select
-                    selectCell.innerHTML = `<select id="item-select-${rowId}" class="item-name-select" onchange="updateReciboRow(${rowId}, this.value)"></select>`;
-                    const filteredOptions = getFilteredSkuOptions(nivel);
-                    // Inicializamos Tom Select
-                    initializeTomSelect(`item-select-${rowId}`, filteredOptions, 'Buscar Articulo Talla (Precio)');
-                    // Bloquear precio unitario (viene del catálogo)
-                    unitPriceInput.disabled = true;
-                }
-            }
-            
-            calculateReciboTotal();
-        }
+                priceInput.value = isManual ? '' : formatPriceInput(price); // Si es manual, se deja vacío para que el usuario escriba
+                priceInput.disabled = !isManual;
+                priceInput.setAttribute('onkeyup', isManual ? `this.value=formatPriceInput(this.value); updateRowTotal(${rowId})` : '');
 
 
-        function updateReciboRow(rowId, skuKey) {
-            const row = document.getElementById(`row-${rowId}`);
-            const tallaInput = row.cells[2].querySelector('input');
-            const unitPriceInput = row.cells[3].querySelector('input');
-            
-            // Si el nivel no es manual, el precio unitario siempre es controlado por la selección
-            unitPriceInput.disabled = true;
-
-            if (skuKey) {
-                const [id, talla, priceString] = skuKey.split('|');
-                const price = cleanPrice(priceString);
-                
-                tallaInput.value = talla;
-                unitPriceInput.value = price;
             } else {
-                tallaInput.value = '';
-                unitPriceInput.value = 0;
+                // Si se deselecciona
+                delete selectedItems[rowId];
+                priceInput.value = isManual ? '' : '0';
+                priceInput.disabled = !isManual;
+                priceInput.setAttribute('onkeyup', isManual ? `this.value=formatPriceInput(this.value); updateRowTotal(${rowId})` : '');
+            }
+            
+            updateRowTotal(rowId);
+        }
+        
+        function updateRowData(rowId, field, value) {
+            if (!selectedItems[rowId]) return;
+
+            if (field === 'qty') {
+                selectedItems[rowId].qty = cleanPrice(value);
+            } else if (field === 'price') {
+                selectedItems[rowId].price = cleanPrice(value);
+            } else if (field === 'talla') {
+                selectedItems[rowId].talla = value;
+            } else if (field === 'entregado') {
+                 selectedItems[rowId].entregado = value;
+            }
+
+            updateRowTotal(rowId);
+        }
+
+        function updateRowTotal(rowId) {
+            const item = selectedItems[rowId];
+            const qtyInput = document.getElementById(`reg-qty-${rowId}`);
+            const priceInput = document.getElementById(`reg-unit-price-${rowId}`);
+            const totalDisplay = document.getElementById(`reg-total-price-${rowId}`);
+            
+            const qty = cleanPrice(qtyInput.value);
+            const price = cleanPrice(priceInput.value);
+            
+            const total = qty * price;
+            totalDisplay.value = formatCOP(total).replace('$', '').trim(); // Muestra solo el número
+
+            // Actualizar el objeto selectedItems para el cálculo final
+            if (item) {
+                item.qty = qty;
+                item.price = price;
+            } else if (qty > 0 || price > 0) {
+                 // Caso para la fila manual sin select
+                 const nameInput = document.getElementById(`reg-name-manual-${rowId}`);
+                 const tallaInput = document.getElementById(`reg-talla-manual-${rowId}`);
+
+                 selectedItems[rowId] = {
+                    qty: qty,
+                    name: nameInput ? nameInput.value : 'Producto Manual',
+                    talla: tallaInput ? tallaInput.value : '-',
+                    price: price,
+                    entregado: document.getElementById(`reg-entregado-${rowId}`).checked
+                 };
             }
 
             calculateReciboTotal();
         }
-
-
-        function addRow(cant = 1, skuKey = '', articulo = '', talla = '', unitPrice = 0, delivered = true) {
-            currentRowId++;
-            const tbody = document.getElementById('recibo-productos-tbody');
-            const row = tbody.insertRow();
-            row.id = `row-${currentRowId}`;
-            const currentId = currentRowId;
-            const nivel = document.getElementById('reg-nivel-ciclo').value;
-            const isManual = nivel === 'manual';
-
-            // Columna 1: CANTIDAD
-            row.insertCell().innerHTML = `<input type="number" value="${cant}" min="0" oninput="calculateReciboTotal();">`;
-            
-            // Columna 2: ARTÍCULO
-            const selectCell = row.insertCell();
-            
-            if (isManual) {
-                selectCell.innerHTML = `<input type="text" value="${articulo}" class="item-name" placeholder="Artículo (Manual)" oninput="calculateReciboTotal();">`;
-            } else {
-                const filteredOptions = getFilteredSkuOptions(nivel);
-                const selectHtml = `<select id="item-select-${currentId}" class="item-name-select" onchange="updateReciboRow(${currentId}, this.value)"></select>`;
-                selectCell.innerHTML = selectHtml;
-                
-                // Inicializar Tom Select inmediatamente
-                const ts = initializeTomSelect(`item-select-${currentId}`, filteredOptions, 'Buscar Articulo Talla (Precio)', skuKey);
-                if(skuKey && ts) {
-                    updateReciboRow(currentId, skuKey);
-                }
-            }
-
-            // Columna 3: TALLA
-            row.insertCell().innerHTML = `<input type="text" value="${talla}" placeholder="T10" oninput="calculateReciboTotal();">`;
-
-            // Columna 4: VR. UNIT
-            const unitPriceInput = `<input type="text" value="${unitPrice}" onkeyup="this.value=formatPriceInput(this.value); calculateReciboTotal();" onblur="this.value=formatPriceInput(this.value);" ${!isManual ? 'disabled' : ''}>`;
-            row.insertCell().innerHTML = unitPriceInput;
-
-            // Columna 5: VR. TOTAL (Display)
-            row.insertCell().innerHTML = `<span id="total-${currentId}" style="font-weight: bold;">${formatCOP(cant * unitPrice)}</span>`;
-
-            // Columna 6: ENTREGA (Checkbox)
-            const checkboxState = delivered ? 'checked' : '';
-            row.insertCell().innerHTML = `<input type="checkbox" class="delivery-checkbox" ${checkboxState} onchange="calculateReciboTotal()">`;
-
-            // Columna 7: ELIMINAR
-            row.insertCell().innerHTML = `<button class="btn-delete" onclick="deleteRow(${currentId})">X</button>`;
-            
-        }
-
-        function deleteRow(rowId) {
-            const row = document.getElementById(`row-${rowId}`);
-            if (row) {
-                // Eliminar instancia de Tom Select asociada
-                const selectElement = row.cells[1].querySelector('select');
-                if (selectElement && tomSelectInstances[`item-select-${rowId}`]) {
-                    tomSelectInstances[`item-select-${rowId}`].destroy();
-                    delete tomSelectInstances[`item-select-${rowId}`];
-                }
-
-                row.remove();
-                calculateReciboTotal();
-            }
-        }
-
 
         function calculateReciboTotal() {
             let subtotal = 0;
-            const tbody = document.getElementById('recibo-productos-tbody');
-            const nivel = document.getElementById('reg-nivel-ciclo').value;
-            const isManual = nivel === 'manual';
-
-            for (let i = 0; i < tbody.rows.length; i++) {
-                const row = tbody.rows[i];
-                const cells = row.cells;
-
-                const qty = cleanPrice(cells[0].querySelector('input').value) || 0;
+            // Recalcula el subtotal a partir de los items en la tabla (incluidos los manuales)
+            document.querySelectorAll('#recibo-productos-tbody tr').forEach(row => {
+                const rowId = row.dataset.rowId;
+                const qty = cleanPrice(document.getElementById(`reg-qty-${rowId}`).value);
+                const price = cleanPrice(document.getElementById(`reg-unit-price-${rowId}`).value);
                 
-                // Si es manual, toma el precio directamente del input 
-                let unitPrice = cleanPrice(cells[3].querySelector('input').value) || 0; 
-                
-                // Si NO es manual, se asegura de que el unitPrice sea el que corresponde al SKU seleccionado
-                if (!isManual) {
-                    const rowId = row.id.split('-')[1];
-                    const ts = tomSelectInstances[`item-select-${rowId}`];
-                    const skuKey = ts ? ts.getValue() : ''; 
-                    if (skuKey) {
-                        const [, , priceString] = skuKey.split('|');
-                        unitPrice = cleanPrice(priceString); 
-                    }
+                if(qty > 0 && price > 0) {
+                     subtotal += qty * price;
+
+                     // Asegurar que el selectedItems se actualice para los campos manuales
+                     const isManual = document.getElementById('reg-nivel-ciclo').value === 'manual';
+                     if (isManual) {
+                        const nameInput = document.getElementById(`reg-name-manual-${rowId}`);
+                        const tallaInput = document.getElementById(`reg-talla-manual-${rowId}`);
+                        if (nameInput && tallaInput) {
+                            selectedItems[rowId] = {
+                                qty: qty,
+                                name: nameInput.value || 'Producto Manual',
+                                talla: tallaInput.value || '-',
+                                price: price,
+                                entregado: document.getElementById(`reg-entregado-${rowId}`).checked
+                            };
+                        }
+                     }
                 }
-                
-                const lineTotal = qty * unitPrice;
-                
-                subtotal += lineTotal;
-                cells[4].querySelector('span').textContent = formatCOP(lineTotal);
-            }
+            });
 
-            const descuento = cleanPrice(document.getElementById('reg-descuento').value) || 0;
-            const totalPagar = subtotal - descuento;
-            const abono = cleanPrice(document.getElementById('reg-abono').value) || 0;
-            const saldo = totalPagar - abono;
+
+            const descuento = cleanPrice(document.getElementById('reg-descuento').value);
+            const abono = cleanPrice(document.getElementById('reg-abono').value);
+
+            const total = Math.max(0, subtotal - descuento);
+            const saldo = Math.max(0, total - abono);
 
             document.getElementById('reg-subtotal-display').textContent = formatCOP(subtotal);
-            document.getElementById('reg-total-display').textContent = formatCOP(totalPagar);
+            document.getElementById('reg-total-display').textContent = formatCOP(total);
             document.getElementById('reg-saldo-display').textContent = formatCOP(saldo);
         }
 
-        function getRowItemNameAndPrice(row, isManual) {
-            let name = '';
-            let unitPrice = cleanPrice(row.cells[3].querySelector('input').value) || 0;
-            
-            if (!isManual) {
-                const rowId = row.id.split('-')[1];
-                const ts = tomSelectInstances[`item-select-${rowId}`];
-                const skuKey = ts ? ts.getValue() : ''; 
-                
-                if (skuKey) {
-                    const sku = ALL_SKUS_LIST.find(s => s.skuKey === skuKey);
-                    if (sku) {
-                        name = sku.name;
-                        unitPrice = sku.price; 
-                    }
-                }
-            } else {
-                name = row.cells[1].querySelector('input').value.trim();
-                // unitPrice ya fue tomado del input de la celda 3
-            }
-            return { name, unitPrice };
-        }
 
-        // Obtiene todos los productos con su estado de entrega
-        function getReciboData() {
+        function addRow() {
+            currentRowId++;
             const tbody = document.getElementById('recibo-productos-tbody');
-            let productos = [];
+            const row = tbody.insertRow();
+            row.dataset.rowId = currentRowId;
+            row.id = `row-${currentRowId}`;
+
             const nivel = document.getElementById('reg-nivel-ciclo').value;
             const isManual = nivel === 'manual';
-            
-            for (let i = 0; i < tbody.rows.length; i++) {
-                const row = tbody.rows[i];
+            const options = getFilteredSkuOptions(nivel);
+            const placeholder = isManual ? 'Escriba Descripción' : 'Buscar Articulo | Talla (Precio)';
+            const selectHtml = isManual 
+                ? `<input type="text" id="reg-name-manual-${currentRowId}" placeholder="Ej: Camisa M/L" onkeyup="updateRowData(${currentRowId}, 'name', this.value)">`
+                : `<select id="reg-prod-select-${currentRowId}"></select>`;
+            const tallaInput = isManual 
+                ? `<input type="text" id="reg-talla-manual-${currentRowId}" value="-" placeholder="Ej: 12" onkeyup="updateRowData(${currentRowId}, 'talla', this.value)">`
+                : `<input type="text" id="reg-talla-${currentRowId}" value="-" disabled>`;
 
-                const qty = cleanPrice(row.cells[0].querySelector('input').value) || 0;
-                const talla = row.cells[2].querySelector('input').value.trim();
-                const delivered = row.cells[5].querySelector('input[type="checkbox"]').checked;
-                
-                const { name, unitPrice } = getRowItemNameAndPrice(row, isManual);
-                
-                if (qty > 0 && name && unitPrice > 0) {
-                    productos.push({ qty, name, talla, unitPrice, delivered: delivered });
-                }
+
+            row.innerHTML = `
+                <td><input type="number" id="reg-qty-${currentRowId}" value="1" min="1" onchange="updateRowData(${currentRowId}, 'qty', this.value)" style="width: 50px;"></td>
+                <td>${selectHtml}</td>
+                <td>${tallaInput}</td>
+                <td><input type="text" id="reg-unit-price-${currentRowId}" value="0" placeholder="0" onkeyup="this.value=formatPriceInput(this.value); updateRowTotal(${currentRowId})" ${isManual ? '' : 'disabled'}></td>
+                <td><input type="text" id="reg-total-price-${currentRowId}" value="0" disabled></td>
+                <td><input type="checkbox" id="reg-entregado-${currentRowId}" onchange="updateRowData(${currentRowId}, 'entregado', this.checked)"></td>
+                <td><button class="btn-delete" onclick="removeRow(${currentRowId})">🗑️</button></td>
+            `;
+
+            if (!isManual) {
+                // Inicializar Tom Select para la fila
+                initializeTomSelect(`reg-prod-select-${currentRowId}`, options, placeholder);
+                // Si no hay opciones, puede que el nivel no tenga productos, pero esto ya se filtra en getFilteredSkuOptions
             }
-            return productos;
+            
+            // Inicializar el item en selectedItems si es manual para que el cálculo inicial funcione
+            if (isManual) {
+                 selectedItems[currentRowId] = {
+                    qty: 1,
+                    name: '',
+                    talla: '-',
+                    price: 0,
+                    entregado: false
+                 };
+            }
         }
 
+        function removeRow(rowId) {
+            const row = document.getElementById(`row-${rowId}`);
+            if (row) {
+                 // Destruir la instancia de Tom Select asociada si existe
+                 if (tomSelectInstances[`reg-prod-select-${rowId}`]) {
+                     tomSelectInstances[`reg-prod-select-${rowId}`].destroy();
+                     delete tomSelectInstances[`reg-prod-select-${rowId}`];
+                 }
+                 // Eliminar de los items seleccionados
+                 delete selectedItems[rowId];
+                 // Eliminar la fila
+                 row.remove();
+                 // Recalcular el total
+                 calculateReciboTotal();
+
+                 // Si no quedan filas y no es manual, añadir una
+                 if (document.getElementById('recibo-productos-tbody').children.length === 0 && document.getElementById('reg-nivel-ciclo').value !== 'manual') {
+                    addRow();
+                 }
+            }
+        }
+        
+        function loadReciboRows() {
+             // Limpiar tabla, eliminar selects e items seleccionados
+             document.getElementById('recibo-productos-tbody').innerHTML = '';
+             Object.values(tomSelectInstances).forEach(ts => {
+                 if (ts && typeof ts.destroy === 'function' && ts.settings.onChange) ts.destroy();
+             });
+             tomSelectInstances = {};
+             selectedItems = {};
+             currentRowId = 0;
+             addRow();
+        }
+
+        function resetReciboSelects() {
+             loadReciboRows(); // Recarga la tabla con el nuevo filtro (o sin él)
+             calculateReciboTotal(); // Recalcula (dará $0)
+        }
+        
+        // --- 6. Funciones de Base de Datos y Persistencia ---
 
         function registrarVenta() {
-            calculateReciboTotal(); 
-            
-            const productosVendidos = getReciboData();
-            const total = cleanPrice(document.getElementById('reg-total-display').textContent) || 0;
-            const saldo = cleanPrice(document.getElementById('reg-saldo-display').textContent) || 0;
-            
+            const talonario = document.getElementById('reg-talonario').value;
             const nombre = document.getElementById('reg-nombre').value.trim();
-            const reciboNo = document.getElementById('reg-talonario').value.trim();
+            const celular = document.getElementById('reg-celular').value.trim();
+            const fecha = document.getElementById('reg-fecha').value;
+            const metodoPago = document.getElementById('reg-metodo-pago').value;
+            const nivelCiclo = document.getElementById('reg-nivel-ciclo').value;
+            const descuento = cleanPrice(document.getElementById('reg-descuento').value);
+            const abono = cleanPrice(document.getElementById('reg-abono').value);
+            
+            // Medidas/Arreglos
+            const medidas = {
+                cadera: document.getElementById('medida-cadera').value.trim(),
+                busto: document.getElementById('medida-busto').value.trim(),
+                cintura: document.getElementById('medida-cintura').value.trim(),
+                largo: document.getElementById('medida-largo').value.trim(),
+                ancho: document.getElementById('medida-ancho').value.trim(),
+                otros: document.getElementById('medida-otros').value.trim(),
+            };
 
-            if (!nombre || !reciboNo || productosVendidos.length === 0) {
-                alert('🚨 Por favor, complete el Nombre del Cliente, el No. de Recibo y agregue al menos un artículo válido.');
-                return; 
+
+            if (!nombre || !talonario) {
+                alert("El Nombre del Cliente y el No. de Recibo son campos obligatorios.");
+                return;
+            }
+
+            // Filtrar solo los items con cantidad y precio válidos
+            const itemsValidos = Object.values(selectedItems).filter(item => item.qty > 0 && item.price > 0 && item.name);
+            
+            if (itemsValidos.length === 0) {
+                 alert("La venta debe contener al menos un producto con cantidad y precio válidos.");
+                 return;
             }
             
-            // Determinar el estado general de la venta: si al menos uno NO está entregado, es 'Pendiente'.
-            const isPending = productosVendidos.some(p => !p.delivered);
-            const estadoVenta = isPending ? 'Pendiente' : 'Entregado';
-
-            const nivelCiclo = document.getElementById('reg-nivel-ciclo').value;
-            const abono = cleanPrice(document.getElementById('reg-abono').value) || 0;
-            
-            let resumenPendientes = productosVendidos
-                .filter(p => !p.delivered)
-                .map(p => `${p.qty}x ${p.name} T${p.talla}`)
-                .join(' | ') || 'Ninguno';
+            const subtotal = itemsValidos.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const total = Math.max(0, subtotal - descuento);
+            const saldo = Math.max(0, total - abono);
+            const estado = saldo > 0 ? 'Pendiente' : 'Entregado';
+            const todosEntregados = itemsValidos.every(item => item.entregado);
+            const estadoEntrega = todosEntregados ? 'Completa' : (itemsValidos.some(item => item.entregado) ? 'Parcial' : 'Pendiente');
 
             const nuevaVenta = {
-                id: Date.now(), 
-                reciboNo: reciboNo,
-                nombre: nombre,
-                celular: document.getElementById('reg-celular').value.trim(),
-                fecha: document.getElementById('reg-fecha').value,
-                metodoPago: document.getElementById('reg-metodo-pago').value,
-                nivel: nivelCiclo,
-                descuento: cleanPrice(document.getElementById('reg-descuento').value) || 0,
+                id: Date.now(), // ID único basado en timestamp
+                recibo: talonario,
+                fecha: fecha,
+                cliente: nombre,
+                celular: celular,
+                metodoPago: metodoPago,
+                nivelCiclo: nivelCiclo,
+                items: itemsValidos,
+                medidas: medidas,
+                subtotal: subtotal,
+                descuento: descuento,
                 total: total,
                 abono: abono,
                 saldo: saldo,
-                estado: estadoVenta, 
-                pendientes: resumenPendientes, 
-                medidas: getMedidasSummary(),
-                productosDetalle: productosVendidos
+                estado: estado, // Pagado / Pendiente
+                estadoEntrega: estadoEntrega, // Completa / Parcial / Pendiente
             };
 
             ventas.push(nuevaVenta);
             localStorage.setItem('ventasDB', JSON.stringify(ventas));
+
+            alert(`✅ Venta No. ${talonario} registrada con éxito. Saldo: ${formatCOP(saldo)}`);
             
-            // Limpiar formulario para la próxima venta
+            // Resetear el formulario de registro de venta
+            resetRegistroVenta();
+            showSection('historial');
+        }
+        
+        function resetRegistroVenta() {
+            // Limpiar campos del cliente y venta
             document.getElementById('reg-talonario').value = '';
             document.getElementById('reg-nombre').value = '';
             document.getElementById('reg-celular').value = '';
+            document.getElementById('reg-metodo-pago').value = 'Efectivo';
+            document.getElementById('reg-nivel-ciclo').value = 'todos';
             document.getElementById('reg-descuento').value = '0';
             document.getElementById('reg-abono').value = '0';
-            document.getElementById('reg-nivel-ciclo').value = 'todos';
-            document.getElementById('reg-metodo-pago').value = 'Efectivo';
             
-            loadReciboRows();
-            calculateReciboTotal();
-            clearMedidas();
-            
-            showSection('historial');
-            alert(`✅ Venta #${reciboNo} registrada con éxito. Estado: ${estadoVenta}.`);
-        }
-
-        // --- 6. Funciones de HISTORIAL / TABLA ---
-
-        function descargarExcel() {
-            // ... (Función de descarga a Excel se mantiene igual) ...
-            if (ventas.length === 0) {
-                alert('No hay datos en el historial para descargar.');
-                return;
-            }
-            
-            let csvHeader = 'Recibo No,Fecha,Cliente,Celular,Ciclo/Nivel,Metodo de Pago,Descuento,Valor Total,Abono,Saldo,Estado,Medidas/Detalles';
-            
-            let maxProducts = 0;
-            ventas.forEach(venta => {
-                if (venta.productosDetalle && venta.productosDetalle.length > maxProducts) {
-                    maxProducts = venta.productosDetalle.length;
-                }
-            });
-
-            for (let i = 1; i <= maxProducts; i++) {
-                csvHeader += `,Producto ${i} (Cant x Nombre Talla),Precio Unitario ${i},Estado ${i} (ENTREGADO/PENDIENTE)`;
-            }
-            
-            let csv = csvHeader + '\n';
-            
-            ventas.forEach(venta => {
-                const escapeField = (field) => `"${String(field).replace(/"/g, '""')}"`;
-                
-                let rowData = [
-                    venta.reciboNo || venta.id,
-                    venta.fecha,
-                    escapeField(venta.nombre),
-                    venta.celular,
-                    venta.nivel,
-                    venta.metodoPago,
-                    venta.descuento,
-                    venta.total,
-                    venta.abono,
-                    venta.saldo,
-                    venta.estado,
-                    escapeField(venta.medidas)
-                ];
-
-                let productCols = [];
-                const productos = venta.productosDetalle || [];
-                
-                productos.forEach(p => {
-                    const productString = `${p.qty}x ${p.name} T${p.talla}`;
-                    const unitPrice = p.unitPrice;
-                    const status = p.delivered ? 'ENTREGADO' : 'PENDIENTE';
-                    
-                    productCols.push(escapeField(productString));
-                    productCols.push(unitPrice); 
-                    productCols.push(status);
-                });
-
-                while (productCols.length < maxProducts * 3) {
-                    productCols.push('');
-                    productCols.push('');
-                    productCols.push('');
-                }
-                
-                rowData = rowData.concat(productCols);
-
-                const row = rowData.join(';'); 
-                csv += row + '\n';
-            });
-
-            const blob = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `Historial_Ventas_Uniformes_${new Date().getFullYear()}${new Date().getMonth() + 1}${new Date().getDate()}.csv`);
-            link.click();
-        }
-
-        function imprimirHistorial() {
-            const printContent = document.getElementById('ventas-table').outerHTML;
-
-            const printWindow = window.open('', '', 'height=600,width=800');
-            printWindow.document.write('<html><head><title>Imprimir Historial de Ventas</title>');
-            printWindow.document.write('<style>');
-            printWindow.document.write('body { font-family: Arial, sans-serif; margin: 20px; }');
-            printWindow.document.write('table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10px; }');
-            printWindow.document.write('th, td { border: 1px solid #000; padding: 5px; text-align: left; vertical-align: top; }');
-            printWindow.document.write('th { background-color: #f0f0f0; }');
-            printWindow.document.write('.product-detail-box, .status-entregado, .status-pendiente { font-size: 10px; }');
-            printWindow.document.write('.product-detail-box ul { list-style: none; padding: 0; margin: 0; }');
-            printWindow.document.write('button { display: none; }'); 
-            printWindow.document.write('</style>');
-            printWindow.document.write('</head><body>');
-            printWindow.document.write('<h2>Historial de Ventas - Uniformes Don Bosco</h2>');
-            printWindow.document.write(printContent);
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-            printWindow.focus();
-            printWindow.print();
-        }
-
-        function loadVentasTable() {
-            const tableBody = document.querySelector('#ventas-table tbody');
-            tableBody.innerHTML = '';
-            
-            // Mostrar las ventas de la más reciente a la más antigua
-            ventas.slice().reverse().forEach(venta => { 
-                const row = tableBody.insertRow();
-                row.id = `hist-row-${venta.id}`;
-                
-                // Celdas principales
-                row.insertCell().textContent = venta.reciboNo || 'N/A';
-                row.insertCell().textContent = venta.fecha;
-                row.insertCell().textContent = venta.nombre;
-                row.insertCell().textContent = formatCOP(venta.total);
-                row.insertCell().textContent = formatCOP(venta.abono);
-                row.insertCell().textContent = formatCOP(venta.saldo);
-                
-                const estadoCell = row.insertCell();
-                estadoCell.textContent = venta.estado;
-                estadoCell.className = venta.estado === 'Entregado' ? 'status-entregado' : 'status-pendiente';
-
-                // Columna Detalle de Productos
-                const detalleCell = row.insertCell();
-                detalleCell.className = 'product-detail-box';
-                
-                let detalleHTML = '<ul>';
-                
-                if (venta.productosDetalle && venta.productosDetalle.length > 0) {
-                    venta.productosDetalle.forEach(p => {
-                        const statusClass = p.delivered ? 'delivered-item' : 'pending-item';
-                        const statusIcon = p.delivered ? '✅' : '🔴';
-                        
-                        detalleHTML += `<li class="${statusClass}">${statusIcon} ${p.qty}x ${p.name} T${p.talla}</li>`;
-                    });
-                } else {
-                     // Caso de fallback para datos antiguos
-                    detalleHTML += `<li>${venta.productos.replace(/ \| /g, '<br>')}</li>`;
-                }
-                
-                detalleHTML += '</ul>';
-                detalleCell.innerHTML = detalleHTML;
-                
-                // Columna Acción
-                const accionCell = row.insertCell();
-                accionCell.style.textAlign = 'center';
-                
-                if (venta.estado === 'Pendiente') {
-                    accionCell.innerHTML = `
-                        <button class="btn-delete" style="background-color: var(--color-success); margin-bottom: 5px;" onclick="marcarEntregado(${venta.id})">Entregar Todo</button>
-                        <button class="btn-delete" onclick="deleteVenta(${venta.id})">Eliminar</button>`;
-                } else {
-                    accionCell.innerHTML = `<button class="btn-delete" onclick="deleteVenta(${venta.id})">Eliminar</button>`;
-                }
-            });
-        }
-
-        function marcarEntregado(ventaId) {
-            if (!confirm('¿Está seguro de que desea marcar esta venta como COMPLETAMENTE ENTREGADA? El saldo pendiente se actualizará a cero.')) {
-                return;
-            }
-
-            const index = ventas.findIndex(v => v.id === ventaId);
-            if (index !== -1) {
-                ventas[index].estado = 'Entregado';
-                ventas[index].pendientes = 'Ninguno';
-                ventas[index].abono = ventas[index].total;
-                ventas[index].saldo = 0; 
-                
-                if (ventas[index].productosDetalle) {
-                    ventas[index].productosDetalle = ventas[index].productosDetalle.map(p => ({
-                        ...p,
-                        delivered: true
-                    }));
-                }
-
-                localStorage.setItem('ventasDB', JSON.stringify(ventas));
-                loadVentasTable(); 
-            }
-        }
-
-        function deleteVenta(ventaId) {
-            if (confirm('¿Está seguro de que desea eliminar permanentemente esta venta?')) {
-                ventas = ventas.filter(v => v.id !== ventaId);
-                localStorage.setItem('ventasDB', JSON.stringify(ventas));
-                loadVentasTable();
-            }
-        }
-
-        function resetDatabase() {
-            if (confirm('¡ADVERTENCIA! ¿Está seguro de que desea ELIMINAR TODO EL HISTORIAL DE VENTAS? Esta acción es irreversible.')) {
-                ventas = [];
-                localStorage.removeItem('ventasDB');
-                loadVentasTable();
-                alert('Historial de ventas eliminado.');
-            }
-        }
-
-        // Funciones de Medidas/Detalles
-
-        function getMedidasSummary() {
-            const medidas = [
-                document.getElementById('medida-cadera').value.trim() && `Cadera(C): ${document.getElementById('medida-cadera').value.trim()}`,
-                document.getElementById('medida-busto').value.trim() && `Busto/Pecho(B): ${document.getElementById('medida-busto').value.trim()}`,
-                document.getElementById('medida-cintura').value.trim() && `Cintura(T): ${document.getElementById('medida-cintura').value.trim()}`,
-                document.getElementById('medida-largo').value.trim() && `Largo(L): ${document.getElementById('medida-largo').value.trim()}`,
-                document.getElementById('medida-ancho').value.trim() && `Ancho(A): ${document.getElementById('medida-ancho').value.trim()}`,
-                document.getElementById('medida-otros').value.trim() && `Otros/Especial: ${document.getElementById('medida-otros').value.trim()}`
-            ].filter(Boolean).join(' | ');
-
-            return medidas || 'N/A';
-        }
-
-        function clearMedidas() {
+            // Limpiar medidas
             document.getElementById('medida-cadera').value = '';
             document.getElementById('medida-busto').value = '';
             document.getElementById('medida-cintura').value = '';
             document.getElementById('medida-largo').value = '';
             document.getElementById('medida-ancho').value = '';
             document.getElementById('medida-otros').value = '';
+
+            // Recargar filas y totales (vacíos)
+            loadReciboRows();
+            calculateReciboTotal();
         }
 
+        function loadVentasTable() {
+            const tbody = document.querySelector('#ventas-table tbody');
+            tbody.innerHTML = ''; // Limpiar tabla
 
-        // --- 7. Inicialización ---
-        document.addEventListener('DOMContentLoaded', () => {
-            showSection('inicio');
-        });
+            // Ordenar por recibo de mayor a menor
+            const ventasOrdenadas = [...ventas].sort((a, b) => cleanPrice(b.recibo) - cleanPrice(a.recibo));
+
+            ventasOrdenadas.forEach((venta) => {
+                const row = tbody.insertRow();
+
+                // Detalle de productos para mostrar en la tabla (ej. 2x Camisa T10, 1x Pantalón T12)
+                const itemsStr = venta.items.map(item => {
+                    const entregadoEmoji = item.entregado ? '✔️' : '❌';
+                    return `${item.qty}x ${item.name} T${item.talla} ${entregadoEmoji}`;
+                }).join('<br>');
+                
+                const estadoClass = venta.saldo > 0 ? 'status-pendiente' : 'status-entregado';
+                const estadoText = venta.saldo > 0 ? `PENDIENTE (${formatCOP(venta.saldo)})` : 'PAGADO';
+                
+                row.innerHTML = `
+                    <td>${venta.recibo}</td>
+                    <td>${venta.fecha}</td>
+                    <td>${venta.cliente} <br> <small style="color: #777;">${venta.celular || 'S/N'}</small></td>
+                    <td>${formatCOP(venta.total)}</td>
+                    <td>${formatCOP(venta.abono)}</td>
+                    <td class="${estadoClass}">${formatCOP(venta.saldo)}</td>
+                    <td>${estadoText} <br> <small style="font-size: 0.9em; font-weight: bold; color: ${venta.estadoEntrega === 'Completa' ? var(--color-success) : (venta.estadoEntrega === 'Parcial' ? var(--color-info) : var(--color-danger))};">${venta.estadoEntrega}</small></td>
+                    <td style="text-align: left; font-size: 0.9em;">${itemsStr}</td>
+                    <td>
+                        <button class="btn-secondary" onclick="imprimirRecibo(${venta.id})" style="margin: 5px; padding: 5px 10px; font-size: 0.9em;">🖨️ Recibo</button>
+                        <button class="btn-delete" onclick="eliminarVenta(${venta.id})" style="margin: 5px; padding: 5px 10px; font-size: 0.9em;">🗑️ Eliminar</button>
+                    </td>
+                `;
+            });
+        }
+        
+        function eliminarVenta(id) {
+            if (confirm("¿Estás seguro de que deseas eliminar esta venta? Esta acción no se puede deshacer.")) {
+                ventas = ventas.filter(v => v.id !== id);
+                localStorage.setItem('ventasDB', JSON.stringify(ventas));
+                loadVentasTable();
+            }
+        }
+
+        function resetDatabase() {
+            if (confirm("ATENCIÓN: ¿Estás ABSOLUTAMENTE seguro de que deseas ELIMINAR TODO EL HISTORIAL DE VENTAS? Esta acción es irreversible.")) {
+                ventas = [];
+                localStorage.removeItem('ventasDB');
+                alert("Base de datos de ventas eliminada.");
+                loadVentasTable();
+            }
+        }
+        
+        // --- 7. Funciones de Impresión / Descarga ---
+
+        function imprimirRecibo(id) {
+             const venta = ventas.find(v => v.id === id);
+             if (!venta) return;
+
+             // Construir el contenido para imprimir
+             let content = `
+                 <style>
+                     body { font-family: sans-serif; margin: 0; padding: 10px; font-size: 10pt; }
+                     h2 { text-align: center; margin: 0; font-size: 14pt; }
+                     .header-info, .client-info, .summary { border: 1px solid #000; padding: 5px; margin-bottom: 5px; }
+                     table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+                     th, td { border: 1px solid #ccc; padding: 4px; text-align: left; }
+                     th { background-color: #eee; }
+                     .summary p { margin: 2px 0; }
+                     .total { font-weight: bold; font-size: 12pt; }
+                 </style>
+                 <h2>UNIFORMES DON BOSCO</h2>
+                 <p style="text-align: center; margin-top: 5px; margin-bottom: 10px;">Recibo de Venta No. ${venta.recibo}</p>
+                 
+                 <div class="client-info">
+                     <p><strong>Fecha:</strong> ${venta.fecha}</p>
+                     <p><strong>Cliente:</strong> ${venta.cliente}</p>
+                     <p><strong>Celular:</strong> ${venta.celular || 'N/A'}</p>
+                     <p><strong>Nivel/Tipo:</strong> ${venta.nivelCiclo}</p>
+                 </div>
+                 
+                 <table>
+                     <thead>
+                         <tr>
+                             <th style="width: 5%;">Cant</th>
+                             <th style="width: 45%;">Artículo</th>
+                             <th style="width: 15%;">Talla</th>
+                             <th style="width: 15%;">V/Unit</th>
+                             <th style="width: 20%;">V/Total</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         ${venta.items.map(item => `
+                             <tr>
+                                 <td>${item.qty}</td>
+                                 <td>${item.name}</td>
+                                 <td>${item.talla}</td>
+                                 <td>${formatCOP(item.price)}</td>
+                                 <td>${formatCOP(item.qty * item.price)}</td>
+                             </tr>
+                         `).join('')}
+                     </tbody>
+                 </table>
+                 
+                 <div class="summary">
+                     <p><strong>Subtotal:</strong> ${formatCOP(venta.subtotal)}</p>
+                     <p><strong>Descuento:</strong> ${formatCOP(venta.descuento)}</p>
+                     <p class="total"><strong>TOTAL A PAGAR:</strong> ${formatCOP(venta.total)}</p>
+                     <hr style="border-top: 1px dashed #000; margin: 5px 0;">
+                     <p><strong>Abono (${venta.metodoPago}):</strong> ${formatCOP(venta.abono)}</p>
+                     <p class="total" style="color: ${venta.saldo > 0 ? 'red' : 'green'};"><strong>SALDO PENDIENTE:</strong> ${formatCOP(venta.saldo)}</p>
+                     <p style="margin-top: 10px; font-size: 9pt;"><strong>Estado Entrega:</strong> ${venta.estadoEntrega}</p>
+                     <p style="font-size: 9pt;"><strong>Items Pendientes:</strong> ${venta.items.filter(i => !i.entregado).map(i => `${i.qty}x ${i.name} T${i.talla}`).join(', ') || 'N/A'}</p>
+                 </div>
+                 
+                 ${(venta.medidas.cadera || venta.medidas.busto || venta.medidas.otros) ? `
+                     <div class="summary" style="margin-top: 10px;">
+                         <p style="font-weight: bold;">Medidas/Arreglos:</p>
+                         <p>${Object.keys(venta.medidas).filter(k => venta.medidas[k]).map(k => `${k}: ${venta.medidas[k]}`).join(' | ')}</p>
+                     </div>
+                 ` : ''}
+                 
+                 <p style="text-align: center; margin-top: 30px; font-size: 9pt;">------------------------------</p>
+                 <p style="text-align: center; margin-top: 5px; font-size: 9pt;">Firma del Cliente</p>
+                 <p style="text-align: center; margin-top: 5px; font-size: 8pt;">¡Gracias por su compra!</p>
+             `;
+
+             // Abrir ventana de impresión
+             const printWindow = window.open('', '', 'height=600,width=800');
+             printWindow.document.write(content);
+             printWindow.document.close();
+             printWindow.print();
+        }
+        
+        function descargarExcel() {
+            if (ventas.length === 0) {
+                alert("No hay ventas para descargar.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Encabezados
+            const headers = ["Recibo", "Fecha", "Cliente", "Celular", "Metodo Pago", "Nivel/Tipo", "Subtotal", "Descuento", "Total", "Abono", "Saldo", "Estado Pago", "Estado Entrega", "Detalle Productos (Cant/Nombre/Talla/V.Unit)", "Medidas"];
+            csvContent += headers.join(";") + "\n";
+
+            // Filas
+            ventas.forEach(venta => {
+                const itemsStr = venta.items.map(item => 
+                    `${item.qty}x ${item.name} T${item.talla} (${formatCOP(item.price)})`
+                ).join(" | ");
+                
+                const medidasStr = Object.keys(venta.medidas).filter(k => venta.medidas[k]).map(k => `${k}: ${venta.medidas[k]}`).join(' | ');
+                
+                const row = [
+                    venta.recibo,
+                    venta.fecha,
+                    venta.cliente,
+                    venta.celular,
+                    venta.metodoPago,
+                    venta.nivelCiclo,
+                    venta.subtotal,
+                    venta.descuento,
+                    venta.total,
+                    venta.abono,
+                    venta.saldo,
+                    venta.saldo > 0 ? 'Pendiente' : 'Pagado',
+                    venta.estadoEntrega,
+                    `"${itemsStr}"`, // Comillas para manejar comas internas
+                    `"${medidasStr}"`
+                ];
+                csvContent += row.join(";") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `historial_ventas_don_bosco_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- 8. Inicialización ---
+        window.onload = function() {
+             showSection('inicio');
+             // Inicializar la primera fila en registro-ventas si no hay items
+             document.getElementById('reg-fecha').value = new Date().toLocaleDateString('es-CO', {day: '2-digit', month: '2-digit', year: '2-digit'}).replace(/\//g, '.');
+             if (document.getElementById('recibo-productos-tbody').children.length === 0) {
+                 addRow();
+             }
+        };
+
+        // Asegurarse de que las filas manuales o de producto se actualicen al cambiar la cantidad
+        // Esto se maneja mejor en la función addRow/updateRowData/calculateReciboTotal
+        
     </script>
 </body>
 </html>
