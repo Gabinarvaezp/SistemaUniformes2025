@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIFORMES DON BOSCO - Ventas y Cotizaciones</title>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    
+    <style>
+        /* --- ESTILOS GENERALES --- */
+        :root {
+            --color-primary: #FFCC00; /* Amarillo Don Bosco */
+            --color-secondary: #000000;
+            --color-background: #f4f4f4;
+            --color-white: #ffffff;
+            --color-danger: #dc3545;
+            --color-success: #28a745;
+            --color-info: #17a2b8;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--color-background);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--color-white);
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 50px;
+        }
+
+        h1, h2, h3 {
+            color: var(--color-secondary);
+            text-align: center;
+        }
+
+        .logo-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .logo-title img {
+            width: 40px;
+            height: 40px;
+        }
+
+        hr {
+            border: 0;
+            height: 2px;
+            background-color: var(--color-primary);
+            margin: 20px 0;
+        }
+
+        /* --- BOTONES PRINCIPALES / ACCIONES --- */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px 20px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--color-secondary);
+            color: var(--color-primary);
+        }
+
+        .btn-primary:hover {
+            background-color: #333333;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background-color: var(--color-primary);
+            color: var(--color-secondary);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #f7e089;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background-color: var(--color-success);
+            color: var(--color-white);
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .btn-danger {
+            background-color: var(--color-danger);
+            color: var(--color-white);
+            width: auto;
+            padding: 10px 20px;
+            margin: 20px auto;
+        }
+
+        .btn-delete {
+            background-color: var(--color-danger);
+            color: var(--color-white);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        /* --- FORMULARIOS --- */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select,
+        .form-group textarea,
+        .ts-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+            background-color: var(--color-white);
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .form-row > .form-group {
+            flex: 1;
+        }
+        
+        /* --- TABLAS (Registro de Venta) --- */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        
+        .products-table th {
+            background-color: var(--color-secondary);
+            color: var(--color-primary);
+            padding: 10px 5px;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .products-table td {
+            padding: 5px;
+            border: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .products-table input[type="number"],
+        .products-table input[type="text"],
+        .products-table select,
+        .products-table .ts-wrapper {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            box-sizing: border-box;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        
+        .products-table input[type="text"]:disabled {
+            background-color: #f7f7f7;
+        }
+        
+        .products-table .ts-wrapper {
+            text-align: left;
+        }
+
+        .ts-control {
+            padding: 5px; /* Ajuste para Tom Select */
+            min-height: 38px;
+        }
+
+        .products-table .btn-delete {
+            background-color: var(--color-danger);
+            padding: 3px 8px;
+        }
+
+        /* --- RESUMEN DE PAGOS --- */
+        .summary-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .summary-total {
+            font-weight: bold;
+            font-size: 1.3em;
+            color: var(--color-danger);
+        }
+        
+        /* --- HISTORIAL DE VENTAS --- */
+        .historial-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        #ventas-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: left;
+            margin-top: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        #ventas-table th, #ventas-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+            font-size: 0.9em;
+        }
+
+        #ventas-table th {
+            background-color: var(--color-secondary);
+            color: var(--color-primary);
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        #ventas-table tr:nth-child(even) {
+            background-color: #fcfcfc;
+        }
+
+        .status-entregado {
+            color: var(--color-success);
+            font-weight: bold;
+        }
+        
+        .status-pendiente {
+            color: var(--color-danger);
+            font-weight: bold;
+        }
+        
+        .product-detail-box ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.85em;
+        }
+
+        .pending-item {
+            color: var(--color-danger);
+            font-weight: 600;
+        }
+        
+        .delivered-item {
+            color: var(--color-success);
+        }
+
+        /* --- COTIZADOR --- */
+        #cotizacion-items-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .cotizacion-item {
+            border-bottom: 1px dashed #eee;
+            padding: 5px 0;
+        }
+        
+        .cotizacion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .cotizacion-item input[type="number"] {
+            padding: 3px;
+            width: 50px;
+        }
+        
+        .cotizacion-total-footer {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 2px solid var(--color-primary);
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="inicio-section">
+            <h1 class="logo-title">UNIFORMES DON BOSCO ⚜️</h1>
+            <p style="text-align: center; color: #555;">Sistema Rápido de Cotización y Ventas.</p>
+            <hr>
+            <button class="btn btn-primary" onclick="showSection('cotizador')">💰 COTIZAR</button>
+            <button class="btn btn-primary" onclick="showSection('registro-ventas')">📝 REGISTRAR VENTA</button>
+            <button class="btn btn-primary" onclick="showSection('historial')">📊 HISTORIAL DE VENTAS</button>
+        </div>
+
+        <div id="cotizador-section" style="display: none;">
+            <h2 class="logo-title">💰 Cotizador Rápido</h2>
+            <hr>
+            <button class="btn btn-secondary" onclick="showSection('inicio')">← VOLVER AL INICIO</button>
+
+            <div class="form-row" style="margin-top: 20px;">
+                <div class="form-group">
+                    <label>Cliente:</label>
+                    <input type="text" id="cot-cliente-nombre" placeholder="Nombre (Opcional)">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono:</label>
+                    <input type="text" id="cot-cliente-telefono" placeholder="WhatsApp (Opcional)">
+                </div>
+            </div>
+
+            <h3 style="text-align: left; margin-top: 30px;">1. Agregar Uniforme Completo (por Talla Base)</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nivel:</label>
+                    <select id="cot-nivel-select" onchange="loadCotizadorTallas()">
+                        <option value="primaria-nino">Primaria (Niño)</option>
+                        <option value="primaria-nina">Primaria (Niña)</option>
+                        <option value="bachillerato-nino">Bachillerato (Niño)</option>
+                        <option value="bachillerato-nina">Bachillerato (Niña)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Talla Base:</label>
+                    <select id="cot-talla-select">
+                        <option value="">Seleccione Talla</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="addUniformeCompleto()">➕ Añadir Uniforme Completo</button>
+            
+            <h3 style="text-align: left; margin-top: 30px;">2. Agregar Prenda Individual</h3>
+            <div class="form-row">
+                <div class="form-group" style="flex: 2;">
+                    <label>Artículo/Talla/Precio:</label>
+                    <select id="cot-prenda-select"></select>
+                </div>
+                <div class="form-group" style="flex: 0.5;">
+                    <label>Cantidad:</label>
+                    <input type="number" id="cot-qty-indiv" value="1" min="1">
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="addPrendaIndividual()">➕ Añadir Prenda Individual</button>
+
+            <h3 style="text-align: center; margin-top: 30px;">🛒 Resumen de Cotización</h3>
+            <div id="cotizacion-items-list">
+                <p style="text-align: center; color: #777;">Aún no se han agregado prendas.</p>
+            </div>
+            
+            <div class="cotizacion-total-footer" style="text-align: right;">
+                TOTAL: <span id="total-cotizacion">$ 0</span>
+            </div>
+
+            <div class="form-row" style="margin-top: 20px;">
+                <button class="btn btn-danger" style="flex: 1;" onclick="resetCotizacion()">🗑️ Limpiar Cotización</button>
+                <button class="btn btn-success" style="flex: 1; background-color: #25D366;" id="btn-whatsapp" disabled onclick="enviarWhatsapp()">💬 Enviar por WhatsApp</button>
+            </div>
+        </div>
+
+        <div id="registro-ventas-section" style="display: none;">
+            <h2 class="logo-title">📝 Registrar Venta</h2>
+            <hr>
+            <button class="btn btn-secondary" onclick="showSection('inicio')">← VOLVER AL INICIO</button>
+
+            <h3 style="text-align: left; margin-top: 20px;">Información de la Venta</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha:</label>
+                    <input type="text" id="reg-fecha" placeholder="09.12.25" disabled>
+                </div>
+                <div class="form-group">
+                    <label>No. Recibo (Talonario):</label>
+                    <input type="number" id="reg-talonario" placeholder="1005" required>
+                </div>
+                <div class="form-group">
+                    <label>Nivel / Ciclo:</label>
+                    <select id="reg-nivel-ciclo" onchange="resetReciboSelects()">
+                        <option value="todos">Todos (General)</option>
+                        <option value="primaria">Primaria</option>
+                        <option value="bachillerato">Bachillerato</option>
+                        <option value="manual">Manual (Sin Precios Fijos)</option>
+                    </select>
+                </div>
+            </div>
+
+            <h3 style="text-align: left; margin-top: 20px;">Información del Cliente</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cliente:</label>
+                    <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
+                </div>
+                <div class="form-group">
+                    <label>Celular:</label>
+                    <input type="text" id="reg-celular" placeholder="31X XXX XXXX">
+                </div>
+                <div class="form-group">
+                    <label>Método de Pago:</label>
+                    <select id="reg-metodo-pago">
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Nequi">Nequi</option>
+                        <option value="Daviplata">Daviplata</option>
+                        <option value="Transferencia">Transferencia</option>
+                        <option value="Tarjeta">Tarjeta</option>
+                    </select>
+                </div>
+            </div>
+
+            <h3 style="text-align: left; margin-top: 20px;">Detalle de Productos</h3>
+            <div class="table-container">
+                <table class="products-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">CANT</th>
+                            <th style="width: 250px;">ARTÍCULO</th>
+                            <th style="width: 80px;">TALLA</th>
+                            <th style="width: 100px;">VR. UNIT</th>
+                            <th style="width: 100px;">VR. TOTAL</th>
+                            <th style="width: 80px;">ENTREGA</th>
+                            <th style="width: 50px;">ELIM.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recibo-productos-tbody">
+                        </tbody>
+                </table>
+            </div>
+            <button class="btn btn-secondary" style="width: auto; padding: 5px 10px; margin: 10px 0 20px 0;" onclick="addRow()">+ Agregar Fila</button>
+
+            <h3 style="text-align: left; margin-top: 20px;">Medidas / Detalles Especiales (Opcional)</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Cadera:</label><input type="text" id="medida-cadera" placeholder="C 82"></div>
+                <div class="form-group"><label>Busto/Pecho:</label><input type="text" id="medida-busto" placeholder="B 98"></div>
+                <div class="form-group"><label>Cintura:</label><input type="text" id="medida-cintura" placeholder="T 42"></div>
+                <div class="form-group"><label>Largo:</label><input type="text" id="medida-largo" placeholder="L 97"></div>
+                <div class="form-group"><label>Ancho:</label><input type="text" id="medida-ancho" placeholder="A 82"></div>
+            </div>
+            <div class="form-group">
+                <label>Otros Detalles:</label>
+                <textarea id="medida-otros" placeholder="Pantalón arreglado de ruedo, Etc."></textarea>
+            </div>
+
+
+            <div class="summary-box">
+                <div class="summary-item">
+                    <span>Subtotal de Productos:</span>
+                    <span id="reg-subtotal-display">$ 0</span>
+                </div>
+                <div class="summary-item">
+                    <label for="reg-descuento">Descuento ($):</label>
+                    <input type="text" id="reg-descuento" value="0" style="width: 100px; text-align: right;" onkeyup="this.value=formatPriceInput(this.value); calculateReciboTotal();">
+                </div>
+                <div class="summary-item summary-total">
+                    <span>TOTAL A PAGAR:</span>
+                    <span id="reg-total-display">$ 0</span>
+                </div>
+                <hr>
+                <div class="form-group">
+                    <label for="reg-abono" style="font-weight: bold;">Abono ($):</label>
+                    <input type="text" id="reg-abono" value="0" placeholder="0" onkeyup="this.value=formatPriceInput(this.value); calculateReciboTotal();">
+                </div>
+                <div class="summary-item summary-total" style="color: var(--color-secondary);">
+                    <span>SALDO PENDIENTE:</span>
+                    <span id="reg-saldo-display">$ 0</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="margin-top: 20px;" onclick="registrarVenta()">💾 REGISTRAR VENTA</button>
+        </div>
+
+        <div id="historial-section" style="display: none;">
+            <h2 class="historial-title">📊 Historial de Ventas</h2>
+            <hr>
+            <button class="btn btn-secondary" onclick="showSection('inicio')">← VOLVER AL INICIO</button>
+            
+            <div style="display: flex; gap: 10px; margin: 20px 0; justify-content: center;">
+                <button class="btn btn-primary" onclick="descargarExcel()">⬇️ Descargar Excel (Mejorado)</button>
+                <button class="btn btn-secondary" onclick="imprimirHistorial()" style="width: auto;">🖨️ Imprimir Historial</button>
+            </div>
+
+            <div class="table-container">
+                <table id="ventas-table">
+                    <thead>
+                        <tr>
+                            <th>Recibo No</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Abono</th>
+                            <th>Saldo</th>
+                            <th>Estado</th>
+                            <th>Detalle de Productos</th>
+                            <th>Medidas</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+            <button class="btn btn-danger" onclick="resetDatabase()">❌ ELIMINAR TODO EL HISTORIAL</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    
+    <script>
+        // --- 1. Base de Datos de Precios (UNIFICADA Y DETALLADA) ---
+        const WHATSAPP_NEGOCIO = '573174703740';
+
+        // Función para limpiar el formato de precios (elimina puntos y comas de formato COP)
+        const cleanPrice = (price) => {
+            if (typeof price === 'string') {
+                return parseFloat(price.replace(/[$. ]/g, '').replace(',', '.')) || 0;
+            }
+            return parseFloat(price) || 0;
+        }
+
+        // Función para formatear el input de precios (solo números, sin separadores de miles)
+        const formatPriceInput = (value) => {
+            return String(value).replace(/[^0-9]/g, '');
+        }
+
+        // Lista completa de todos los productos y sus precios. Data basada en las imágenes.
+        const PRODUCTOS_DATA = [
+            // PRIMARIA (Basado en imagen_406206.png)
+            { name: "BUSO SUDADERA", id: "BUSO_SUD", prices: { 4: 75000, 6: 75000, 8: 75000, 10: 80000, 12: 80000, 14: 85000, 16: 85000, S: 90000 }, nivel: 'primaria' },
+            { name: "PANTALÓN SUDADERA", id: "PANTALON_SUD", prices: { 4: 50000, 6: 50000, 8: 50000, 10: 65000, 12: 65000, 14: 70000, 16: 70000, S: 75000 }, nivel: 'primaria' },
+            { name: "CAMISETA DEPORTIVA P", id: "CAMISETA_DEP_P", prices: { 4: 30000, 6: 30000, 8: 30000, 10: 35000, 12: 35000, 14: 40000, 16: 40000, S: 42000 }, nivel: 'primaria' },
+            { name: "PANTALONETA P", id: "PANTALONETA_P", prices: { 4: 25000, 6: 25000, 8: 25000, 10: 28000, 12: 28000, 14: 30000, 16: 30000, S: 35000 }, nivel: 'primaria' },
+            { name: "PANTALÓN NIÑO", id: "PANTALON_NINO", prices: { 4: 50000, 6: 50000, 8: 50000, 10: 55000, 12: 55000, 14: 60000, 16: 60000, S: 64000 }, nivel: 'primaria' },
+            { name: "CAMIBUSO NIÑO", id: "CAMIBUSO_NINO", prices: { 4: 40000, 6: 40000, 8: 40000, 10: 45000, 12: 45000, 14: 50000, 16: 50000, S: 54000 }, nivel: 'primaria' },
+            { name: "CHAQUETA DIARIO P", id: "CHAQUETA_DIARIO_P", prices: { 4: 80000, 6: 80000, 8: 80000, 10: 85000, 12: 85000, 14: 90000, 16: 90000, S: 95000 }, nivel: 'primaria' },
+            { name: "BATA NIÑA GRADO 0-2", id: "BATA_NINA", prices: { 4: 65000, 6: 65000, 8: 70000, 10: 75000, 12: 75000, 14: 80000, 16: 88000 }, nivel: 'primaria' },
+            { name: "JARDINERA GRADO 3-6", id: "JARDINERA_P", prices: { 10: 80000, 12: 80000, 14: 85000, 16: 85000, S: 85000 }, nivel: 'primaria' },
+            { name: "CAMISA JARDINERA", id: "CAMISA_JARD", prices: { 10: 37000, 12: 39000, 14: 41000, 16: 43000, S: 45000 }, nivel: 'primaria' },
+            
+            // BACHILLERATO (Basado en imagen_4061e5.png)
+            { name: "SUDADERA (Chaqueta + Pantalón)", id: "CHAQUETA_SUD_B", prices: { 10: 130000, 12: 135000, 14: 145000, 16: 150000, S: 160000, M: 170000, L: 175000, XL: 180000, XXL: 190000 }, nivel: 'bachillerato' },
+            { name: "CHAQUETA SUDADERA (Solo)", id: "CHAQ_SUD_B_SOLO", prices: { 10: 85000, 12: 85000, 14: 90000, 16: 95000, S: 95000, M: 100000, L: 105000, XL: 110000, XXL: 110000 }, nivel: 'bachillerato' },
+            { name: "PANTALÓN SUDADERA BACH", id: "PANTALON_SUD_B", prices: { 10: 55000, 12: 55000, 14: 65000, 16: 70000, S: 75000, M: 75000, L: 80000, XL: 80000, XXL: 80000 }, nivel: 'bachillerato' },
+            { name: "CHAQUETA DIARIO BACH", id: "CHAQUETA_DIARIO_B", prices: { 10: 85000, 12: 85000, 14: 90000, 16: 95000, S: 95000, M: 105000, L: 105000, XL: 105000, XXL: 105000 }, nivel: 'bachillerato' },
+            { name: "SACO AZUL", id: "SACO_AZUL", prices: { 10: 65000, 12: 65000, 14: 66000, 16: 70000, S: 72000, M: 75000, L: 78000, XL: 80000, XXL: 80000 }, nivel: 'bachillerato' },
+            { name: "CAMISETA TIPO POLO", id: "CAMISETA_POLO", prices: { 10: 28000, 12: 30000, 14: 35000, 16: 38000, S: 38000, M: 40000, L: 40000, XL: 45000, XXL: 45000 }, nivel: 'bachillerato' },
+            { name: "CAMISETA DEPORTIVA BACH", id: "CAMISETA_DEP_B", prices: { 10: 30000, 12: 30000, 14: 30000, 16: 30000, S: 30000, M: 35000, L: 35000, XL: 35000, XXL: 35000 }, nivel: 'bachillerato' },
+            { name: "PANTALONETA BACH", id: "PANTALONETA_B", prices: { 10: 28000, 12: 28000, 14: 30000, 16: 30000, S: 30000, M: 32000, L: 32000, XL: 35000, XXL: 35000 }, nivel: 'bachillerato' },
+            { name: "PANTALÓN NEGRO LINO", id: "PANTALON_LINO", prices: { 28: 43000, 30: 55000, 32: 55000, 34: 55000, 36: 60000, 38: 60000 }, nivel: 'bachillerato' },
+            { name: "JARDINERA BACH", id: "JARDINERA_B", prices: { 10: 80000, 12: 80000, 14: 85000, 16: 85000, S: 85000, M: 90000, L: 95000, XL: 95000, XXL: 95000 }, nivel: 'bachillerato' },
+            { name: "SACO NIÑA", id: "SACO_NINA", prices: { 10: 72000, 12: 74000, 14: 75000, 16: 75000, S: 78000, M: 78000, L: 80000, XL: 80000, XXL: 80000 }, nivel: 'bachillerato' },
+            { name: "BUSO BLANCO ML", id: "BUSO_BLANCO", prices: { 10: 45000, 12: 50000, 14: 50000, 16: 55000, S: 55000, M: 60000, L: 60000, XL: 60000, XXL: 60000 }, nivel: 'bachillerato' },
+
+            // OPCIONALES/OTROS (Usando precios de ejemplo para la Bata Azul/Blanca)
+            { 
+                name: "BATA AZUL/BLANCA", 
+                id: "BATA_AZUL_BLANCA", 
+                prices: { 4: 50000, 6: 50000, 8: 55000, 10: 55000, 12: 60000, 14: 60000, 16: 65000, S: 68000 }, 
+                nivel: 'todos'
+            }, 
+            { name: "OVEROL", id: "OVEROL", prices: { 4: 70000, 6: 70000, 8: 75000, 10: 80000, 12: 80000, 14: 85000, 16: 85000, S: 90000 }, nivel: 'todos' },
+        ];
+
+        // Mapa para búsqueda rápida (id -> producto)
+        const PRODUCTOS_MAP = PRODUCTOS_DATA.reduce((map, prod) => {
+            map[prod.id] = prod;
+            return map;
+        }, {});
+
+        // Genera una lista plana de todos los artículos con su talla y precio.
+        const ALL_SKUS_LIST = [];
+        PRODUCTOS_DATA.forEach(prod => {
+            Object.keys(prod.prices).forEach(talla => {
+                const price = prod.prices[talla];
+                ALL_SKUS_LIST.push({
+                    id: prod.id,
+                    name: prod.name,
+                    talla: talla,
+                    price: price,
+                    nivel: prod.nivel,
+                    skuKey: `${prod.id}|${talla}|${price}` // Clave única para el value del select
+                });
+            });
+        });
+
+        // Definiciones de Uniformes Completos
+        const UNIFORMES_COMPLETOS = {
+            'primaria-nino': ["BUSO_SUD", "PANTALON_SUD", "CAMISETA_DEP_P", "PANTALONETA_P", "PANTALON_NINO", "CAMIBUSO_NINO", "CHAQUETA_DIARIO_P"],
+            'primaria-nina': ["BUSO_SUD", "PANTALON_SUD", "CAMISETA_DEP_P", "PANTALONETA_P", "CHAQUETA_DIARIO_P", "JARDINERA_P", "CAMISA_JARD", "BATA_NINA"], 
+            'bachillerato-nino': ["CHAQUETA_SUD_B", "PANTALON_SUD_B", "CHAQUETA_DIARIO_B", "SACO_AZUL", "CAMISETA_POLO", "CAMISETA_DEP_B", "PANTALONETA_B", "PANTALON_LINO"],
+            'bachillerato-nina': ["CHAQUETA_SUD_B", "PANTALON_SUD_B", "CHAQUETA_DIARIO_B", "JARDINERA_B", "SACO_NINA", "BUSO_BLANCO", "CAMISETA_POLO", "CAMISETA_DEP_B"],
+        };
+
+        // --- 2. Variables Globales y Estado ---
+        let currentSection = 'inicio';
+        let selectedItems = {}; 
+        let ventas = JSON.parse(localStorage.getItem('ventasDB')) || [];
+        let currentRowId = 0; 
+        let tomSelectInstances = {}; // Para guardar instancias de Tom Select
+
+
+        // --- 3. Funciones Generales ---
+
+        function showSection(sectionId) {
+            // Destruir instancias de Tom Select para evitar duplicados al cambiar de sección
+            Object.values(tomSelectInstances).forEach(ts => {
+                if (ts) ts.destroy();
+            });
+            tomSelectInstances = {};
+
+            const allSections = ['inicio', 'cotizador', 'registro-ventas', 'historial'];
+            allSections.forEach(id => {
+                const element = document.getElementById(id + '-section');
+                if (element) element.style.display = 'none';
+            });
+            
+            currentSection = sectionId;
+            document.getElementById(sectionId + '-section').style.display = 'block';
+
+            if (sectionId === 'cotizador') {
+                loadCotizadorTallas();
+                initializeTomSelect('cot-prenda-select', getFilteredSkuOptions('todos'));
+                calculateTotal();
+            } else if (sectionId === 'historial') {
+                loadVentasTable();
+            } else if (sectionId === 'registro-ventas') {
+                document.getElementById('reg-fecha').value = new Date().toLocaleDateString('es-CO', {day: '2-digit', month: '2-digit', year: '2-digit'}).replace(/\//g, '.');
+                loadReciboRows();
+                calculateReciboTotal();
+            }
+        }
+
+        function formatCOP(number) {
+            if (typeof number !== 'number' || isNaN(number)) return '$ 0';
+            // Usa el formato de moneda Colombiana (COP)
+            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(number);
+        }
+
+        // Filtra las opciones de SKU según el nivel (primaria, bachillerato o todos)
+        function getFilteredSkuOptions(nivel) {
+            let filteredList = [];
+
+            ALL_SKUS_LIST.sort((a, b) => a.name.localeCompare(b.name)).forEach(sku => {
+                if (nivel === 'todos' || sku.nivel === 'todos' || sku.nivel === nivel) {
+                    filteredList.push({
+                        value: sku.skuKey, 
+                        text: `${sku.name} T${sku.talla} (${formatCOP(sku.price)})`
+                    });
+                }
+            });
+            return filteredList;
+        }
+
+
+        // Inicializar Tom Select en un elemento
+        function initializeTomSelect(elementId, options = [], placeholder = 'Buscar Articulo | Talla (Precio)') {
+            const selectElement = document.getElementById(elementId);
+            if (!selectElement) return;
+
+            // Limpiar opciones si ya hay un Tom Select
+            if (tomSelectInstances[elementId]) {
+                tomSelectInstances[elementId].destroy();
+            }
+            
+            // Cargar opciones
+            selectElement.innerHTML = options.map(sku => 
+                `<option value="${sku.value}">${sku.text}</option>`
+            ).join('');
+            
+            // Agregar la opción de placeholder
+            selectElement.innerHTML = `<option value="">${placeholder}</option>` + selectElement.innerHTML;
+
+
+            const tomSelect = new TomSelect(`#${elementId}`, {
+                valueField: 'value',
+                labelField: 'text',
+                searchField: ['text'],
+                sortField: 'text',
+                placeholder: placeholder,
+                maxItems: 1,
+                create: false,
+                onFocus: function() {
+                    if (!this.isOpen) {
+                        this.open();
+                    }
+                }
+            });
+            
+            tomSelectInstances[elementId] = tomSelect;
+            return tomSelect;
+        }
+
+
+        // --- 4. Funciones del COTIZADOR RÁPIDO ---
+
+        function loadCotizadorTallas() {
+            const nivelSelect = document.getElementById('cot-nivel-select');
+            const tallaSelect = document.getElementById('cot-talla-select');
+            tallaSelect.innerHTML = '<option value="">Seleccione Talla</option>';
+            const nivel = nivelSelect.value;
+            const tallas = getTallasPorNivel(nivel);
+            tallas.forEach(talla => {
+                const option = document.createElement('option');
+                option.value = talla;
+                option.textContent = `Talla ${talla}`;
+                tallaSelect.appendChild(option);
+            });
+        }
+
+        function getTallasPorNivel(nivel) {
+            let tallas = new Set();
+            const idsToCheck = UNIFORMES_COMPLETOS[nivel];
+            
+            idsToCheck.forEach(id => {
+                const product = PRODUCTOS_MAP[id];
+                if (product) {
+                    Object.keys(product.prices).forEach(t => tallas.add(t));
+                }
+            });
+
+            return Array.from(tallas).sort((a, b) => {
+                const numA = parseInt(a);
+                const numB = parseInt(b);
+                if (isNaN(numA) && isNaN(numB)) return a.localeCompare(b);
+                if (isNaN(numA)) return 1; 
+                if (isNaN(numB)) return -1;
+                return numA - numB;
+            });
+        }
+
+        // Función para agregar una prenda seleccionada al resumen
+        function addPrendaIndividual() {
+            const ts = tomSelectInstances['cot-prenda-select'];
+            const skuKey = ts ? ts.getValue() : document.getElementById('cot-prenda-select').value;
+            const qty = parseInt(document.getElementById('cot-qty-indiv').value) || 1;
+            
+            if (!skuKey || qty <= 0) {
+                alert('Por favor, seleccione un artículo/talla y una cantidad válida.');
+                return; 
+            }
+
+            const [id, talla, priceString] = skuKey.split('|');
+            const price = cleanPrice(priceString);
+            const product = PRODUCTOS_MAP[id];
+            const key = `${id}|${talla}`;
+            
+            if (selectedItems[key]) {
+                selectedItems[key].qty += qty;
+            } else {
+                selectedItems[key] = {
+                    name: product.name, 
+                    size: talla, 
+                    price: price, 
+                    qty: qty 
+                };
+            }
+            
+            calculateTotal();
+            
+            // Limpiar selección
+            if (ts) ts.setValue(''); 
+            document.getElementById('cot-qty-indiv').value = 1;
+        }
+
+        function addUniformeCompleto() {
+            const nivel = document.getElementById('cot-nivel-select').value;
+            const talla = document.getElementById('cot-talla-select').value;
+            
+            if (!talla) {
+                alert('Por favor, seleccione una talla base para el uniforme completo.');
+                return; 
+            }
+
+            const prendasIds = UNIFORMES_COMPLETOS[nivel];
+            let itemsAdded = 0;
+            
+            prendasIds.forEach(id => {
+                const product = PRODUCTOS_MAP[id];
+                
+                let finalTalla = talla;
+                let price = 0;
+                
+                if (product && product.prices[talla]) {
+                    price = product.prices[talla];
+                } else if (product) {
+                     // Lógica de respaldo simple si la talla exacta no está definida para esa prenda.
+                     const availableTallas = Object.keys(product.prices).map(t => ({talla: t, num: parseInt(t) || Infinity})).sort((a,b) => a.num - b.num);
+                     if (availableTallas.length > 0) {
+                          finalTalla = availableTallas[0].talla; 
+                          price = product.prices[finalTalla];
+                     } else {
+                          return; 
+                     }
+                } else {
+                    return; 
+                }
+                
+                if (price > 0) {
+                    const key = `${id}|${finalTalla}`;
+                    if (selectedItems[key]) {
+                        selectedItems[key].qty += 1;
+                    } else {
+                        selectedItems[key] = {
+                            name: product.name, 
+                            size: finalTalla, 
+                            price: price, 
+                            qty: 1 
+                        };
+                    }
+                    itemsAdded++;
+                }
+            });
+            
+            if (itemsAdded === 0) {
+                alert('No se pudieron agregar prendas para la talla y el nivel seleccionados.');
+            }
+
+            calculateTotal();
+        }
+
+        function updateCotizacionItem(key, qty) {
+            qty = parseInt(qty) || 0;
+            if (qty > 0) {
+                selectedItems[key].qty = qty;
+            } else {
+                delete selectedItems[key];
+            }
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            const itemsList = document.getElementById('cotizacion-items-list');
+            itemsList.innerHTML = '';
+
+            const keys = Object.keys(selectedItems).sort();
+            
+            keys.forEach(key => {
+                const item = selectedItems[key];
+                const subtotal = item.price * item.qty;
+                total += subtotal;
+
+                itemsList.innerHTML += `
+                    <div class="cotizacion-item" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #eee; padding: 5px 0;">
+                        <span class="qty-name" style="flex: 2; text-align: left; font-size: 13px;">${item.name} (T${item.size})</span>
+                        <div style="flex: 1; display: flex; align-items: center; justify-content: flex-end;">
+                            <input type="number" value="${item.qty}" min="0" style="width: 50px; height: 25px; text-align: center; margin-right: 5px;" 
+                                onchange="updateCotizacionItem('${key}', this.value)">
+                            <span class="price-total" style="width: 80px; text-align: right; font-weight: 600;">${formatCOP(subtotal)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('total-cotizacion').textContent = formatCOP(total);
+            document.getElementById('btn-whatsapp').disabled = total === 0;
+            
+            if (total === 0) {
+                itemsList.innerHTML = '<p style="text-align: center; color: #777;">Aún no se han agregado prendas.</p>';
+            }
+
+            return total;
+        }
+
+        function resetCotizacion() {
+            if (confirm('¿Está seguro de que desea borrar la cotización actual?')) {
+                selectedItems = {};
+                document.getElementById('cot-cliente-nombre').value = '';
+                document.getElementById('cot-cliente-telefono').value = '';
+                calculateTotal();
+            }
+        }
+
+        function enviarWhatsapp() {
+            const clientName = document.getElementById('cot-cliente-nombre').value;
+            const clientPhone = document.getElementById('cot-cliente-telefono').value.replace(/\D/g, ''); 
+            const total = document.getElementById('total-cotizacion').textContent;
+
+            if (Object.keys(selectedItems).length === 0) {
+                alert('No hay ítems para cotizar.');
+                return;
+            }
+
+            let message = `*¡COTIZACIÓN UNIFORMES DON BOSCO!* %0A%0A`;
+            if (clientName) {
+                message += `Estimado(a) *${clientName}*, %0A`;
+            }
+            message += `Detalle de la cotización:%0A%0A`;
+            
+            let itemsList = '';
+            Object.keys(selectedItems).sort().forEach(key => {
+                const item = selectedItems[key];
+                const subtotal = formatCOP(item.price * item.qty);
+                itemsList += `👉 ${item.qty}x ${item.name} Talla ${item.size} x ${formatCOP(item.price)} = *${subtotal}*%0A`;
+            });
+            
+            message += itemsList;
+            message += `%0A*TOTAL FINAL:* ${total}%0A%0A`;
+            message += `Precios válidos para el año en curso. ¡Gracias por su confianza!%0A%0A`;
+            message += `Para confirmar el pedido, contáctanos: ${WHATSAPP_NEGOCIO}`;
+
+            const targetPhone = clientPhone || WHATSAPP_NEGOCIO;
+            const fullPhone = targetPhone.startsWith('57') ? targetPhone : '57' + targetPhone;
+
+            const whatsappURL = `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodeURIComponent(decodeURIComponent(message))}`;
+            window.open(whatsappURL, '_blank');
+        }
+
+
+        // --- 5. Funciones de REGISTRO DE VENTAS ---
+
+        function loadReciboRows() {
+            const tbody = document.getElementById('recibo-productos-tbody');
+            tbody.innerHTML = '';
+            currentRowId = 0;
+            // Cargar 4 filas vacías por defecto
+            for (let i = 0; i < 4; i++) {
+                addRow();
+            }
+        }
+
+        function resetReciboSelects() {
+            const nivel = document.getElementById('reg-nivel-ciclo').value;
+            const tbody = document.getElementById('recibo-productos-tbody');
+            const isManual = nivel === 'manual';
+            
+            Object.keys(tomSelectInstances).filter(key => key.startsWith('item-select-')).forEach(key => {
+                if (tomSelectInstances[key]) tomSelectInstances[key].destroy();
+                delete tomSelectInstances[key];
+            });
+            
+            // Reconstruir las filas con la configuración de nivel/manual
+            for (let i = 0; i < tbody.rows.length; i++) {
+                const row = tbody.rows[i];
+                const rowId = row.id.split('-')[1];
+                const cells = row.cells;
+                
+                // 1. Columna ARTÍCULO
+                const selectCell = cells[1];
+                
+                if (isManual) {
+                    // Cambiar de select a input
+                    selectCell.innerHTML = `<input type="text" value="" class="item-name" placeholder="Artículo (Ej: Buso Sudadera)">`;
+                    // Desbloquear precio unitario para entrada manual
+                    cells[3].querySelector('input').disabled = false;
+                } else {
+                    // Cambiar de input a select y re-inicializar Tom Select
+                    selectCell.innerHTML = `<select id="item-select-${rowId}" class="item-name-select" onchange="updateReciboRow(${rowId}, this.value)"></select>`;
+                    const filteredOptions = getFilteredSkuOptions(nivel);
+                    initializeTomSelect(`item-select-${rowId}`, filteredOptions);
+                    // Bloquear precio unitario (viene del catálogo)
+                    cells[3].querySelector('input').disabled = true;
+                }
+                
+                // 2. Limpiar Talla, Cantidad (dejar en 1) y Precio
+                cells[2].querySelector('input').value = '';
+                cells[0].querySelector('input').value = '1';
+                cells[3].querySelector('input').value = '0';
+            }
+            
+            calculateReciboTotal();
+        }
+
+
+        function updateReciboRow(rowId, skuKey) {
+            const row = document.getElementById(`row-${rowId}`);
+            const tallaInput = row.cells[2].querySelector('input');
+            const unitPriceInput = row.cells[3].querySelector('input');
+            
+            // Asume que si usa el select, el precio debe venir de la BD
+            unitPriceInput.disabled = true;
+
+            if (skuKey) {
+                const [id, talla, priceString] = skuKey.split('|');
+                const price = cleanPrice(priceString);
+                
+                tallaInput.value = talla;
+                unitPriceInput.value = price;
+            } else {
+                tallaInput.value = '';
+                unitPriceInput.value = 0;
+            }
+
+            calculateReciboTotal();
+        }
+
+
+        function addRow(cant = 1, skuKey = '', articulo = '', talla = '', unitPrice = 0, delivered = true) {
+            currentRowId++;
+            const tbody = document.getElementById('recibo-productos-tbody');
+            const row = tbody.insertRow();
+            row.id = `row-${currentRowId}`;
+            const currentId = currentRowId;
+            const nivel = document.getElementById('reg-nivel-ciclo').value;
+            const isManual = nivel === 'manual';
+
+            // Columna 1: CANTIDAD
+            row.insertCell().innerHTML = `<input type="number" value="${cant}" min="0" oninput="calculateReciboTotal();">`;
+            
+            // Columna 2: ARTÍCULO
+            const selectCell = row.insertCell();
+            
+            if (isManual) {
+                selectCell.innerHTML = `<input type="text" value="${articulo}" class="item-name" placeholder="Artículo (Manual)" oninput="calculateReciboTotal();">`;
+            } else {
+                const filteredOptions = getFilteredSkuOptions(nivel);
+                const selectHtml = `<select id="item-select-${currentId}" class="item-name-select" onchange="updateReciboRow(${currentId}, this.value)"></select>`;
+                selectCell.innerHTML = selectHtml;
+                
+                setTimeout(() => {
+                    const ts = initializeTomSelect(`item-select-${currentId}`, filteredOptions);
+                    if(skuKey && ts) {
+                        ts.setValue(skuKey);
+                        updateReciboRow(currentId, skuKey);
+                    }
+                }, 0);
+            }
+
+            // Columna 3: TALLA
+            row.insertCell().innerHTML = `<input type="text" value="${talla}" placeholder="T10" oninput="calculateReciboTotal();">`;
+
+            // Columna 4: VR. UNIT
+            const unitPriceInput = `<input type="text" value="${unitPrice}" onkeyup="this.value=formatPriceInput(this.value); calculateReciboTotal();" onblur="this.value=formatPriceInput(this.value);" ${!isManual ? 'disabled' : ''}>`;
+            row.insertCell().innerHTML = unitPriceInput;
+
+            // Columna 5: VR. TOTAL (Display)
+            row.insertCell().innerHTML = `<span id="total-${currentId}">${formatCOP(cant * unitPrice)}</span>`;
+
+            // Columna 6: ENTREGA (Checkbox)
+            const checkboxState = delivered ? 'checked' : '';
+            row.insertCell().innerHTML = `<input type="checkbox" class="delivery-checkbox" ${checkboxState} onchange="calculateReciboTotal()">`;
+
+            // Columna 7: ELIMINAR
+            row.insertCell().innerHTML = `<button class="btn-delete" onclick="deleteRow(${currentId})">X</button>`;
+            
+        }
+
+        function deleteRow(rowId) {
+            const row = document.getElementById(`row-${rowId}`);
+            if (row) {
+                const selectElement = row.cells[1].querySelector('select');
+                if (selectElement && tomSelectInstances[`item-select-${rowId}`]) {
+                    tomSelectInstances[`item-select-${rowId}`].destroy();
+                    delete tomSelectInstances[`item-select-${rowId}`];
+                }
+
+                row.remove();
+                calculateReciboTotal();
+            }
+        }
+
+
+        function calculateReciboTotal() {
+            let subtotal = 0;
+            const tbody = document.getElementById('recibo-productos-tbody');
+
+            for (let i = 0; i < tbody.rows.length; i++) {
+                const row = tbody.rows[i];
+                const cells = row.cells;
+
+                const qty = cleanPrice(cells[0].querySelector('input').value) || 0;
+                // La celda de precio unitario es la 3 (índice 3)
+                const unitPrice = cleanPrice(cells[3].querySelector('input').value) || 0; 
+                const lineTotal = qty * unitPrice;
+                
+                subtotal += lineTotal;
+                cells[4].querySelector('span').textContent = formatCOP(lineTotal);
+            }
+
+            const descuento = cleanPrice(document.getElementById('reg-descuento').value) || 0;
+            const totalPagar = subtotal - descuento;
+            const abono = cleanPrice(document.getElementById('reg-abono').value) || 0;
+            const saldo = totalPagar - abono;
+
+            document.getElementById('reg-subtotal-display').textContent = formatCOP(subtotal);
+            document.getElementById('reg-total-display').textContent = formatCOP(totalPagar);
+            document.getElementById('reg-saldo-display').textContent = formatCOP(saldo);
+        }
+
+        // Función central para obtener datos del producto en una fila
+        function getRowItemNameAndPrice(row, isManual) {
+            let name = '';
+            let unitPrice = cleanPrice(row.cells[3].querySelector('input').value) || 0;
+            
+            if (!isManual) {
+                const rowId = row.id.split('-')[1];
+                const ts = tomSelectInstances[`item-select-${rowId}`];
+                const skuKey = ts ? ts.getValue() : ''; 
+                
+                if (skuKey) {
+                    // Buscamos el nombre del producto en la lista SKU
+                    const sku = ALL_SKUS_LIST.find(s => s.skuKey === skuKey);
+                    if (sku) {
+                        name = sku.name;
+                        unitPrice = sku.price; // Usar precio de la BD
+                    }
+                }
+            } else {
+                name = row.cells[1].querySelector('input').value.trim();
+                // unitPrice ya fue tomado del input de la celda 3
+            }
+            return { name, unitPrice };
+        }
+
+        // Obtiene todos los productos con su estado de entrega
+        function getReciboData() {
+            const tbody = document.getElementById('recibo-productos-tbody');
+            let productos = [];
+            const nivel = document.getElementById('reg-nivel-ciclo').value;
+            const isManual = nivel === 'manual';
+            
+            for (let i = 0; i < tbody.rows.length; i++) {
+                const row = tbody.rows[i];
+
+                const qty = cleanPrice(row.cells[0].querySelector('input').value) || 0;
+                const talla = row.cells[2].querySelector('input').value.trim();
+                const delivered = row.cells[5].querySelector('input[type="checkbox"]').checked;
+                
+                const { name, unitPrice } = getRowItemNameAndPrice(row, isManual);
+                
+                if (qty > 0 && name && unitPrice > 0) {
+                    productos.push({ qty, name, talla, unitPrice, id: `item-${row.id}`, delivered: delivered });
+                }
+            }
+            return productos;
+        }
+
+
+        function registrarVenta() {
+            calculateReciboTotal(); 
+            
+            const productosVendidos = getReciboData();
+            const total = cleanPrice(document.getElementById('reg-total-display').textContent) || 0;
+            const saldo = cleanPrice(document.getElementById('reg-saldo-display').textContent) || 0;
+            
+            const nombre = document.getElementById('reg-nombre').value.trim();
+            const reciboNo = document.getElementById('reg-talonario').value.trim();
+
+            if (!nombre || !reciboNo || productosVendidos.length === 0) {
+                alert('Por favor, complete el Nombre del Cliente, el No. de Recibo y agregue al menos un artículo válido.');
+                return; 
+            }
+            
+            // Determinar el estado general de la venta: si al menos uno NO está entregado, es 'Pendiente'.
+            const isPending = productosVendidos.some(p => !p.delivered);
+            const estadoVenta = isPending ? 'Pendiente' : 'Entregado';
+
+            const nivelCiclo = document.getElementById('reg-nivel-ciclo').value;
+            const abono = cleanPrice(document.getElementById('reg-abono').value) || 0;
+            
+            // Resumen de productos y pendientes para el historial/excel
+            let resumenProductos = productosVendidos.map(p => `${p.qty}x ${p.name} T${p.talla}`).join(' | ');
+            let resumenPendientes = productosVendidos
+                .filter(p => !p.delivered)
+                .map(p => `${p.qty}x ${p.name} T${p.talla}`)
+                .join(' | ') || 'Ninguno';
+
+            const nuevaVenta = {
+                id: Date.now(), 
+                reciboNo: reciboNo,
+                nombre: nombre,
+                celular: document.getElementById('reg-celular').value.trim(),
+                fecha: document.getElementById('reg-fecha').value,
+                metodoPago: document.getElementById('reg-metodo-pago').value,
+                nivel: nivelCiclo,
+                descuento: cleanPrice(document.getElementById('reg-descuento').value) || 0,
+                total: total,
+                abono: abono,
+                saldo: saldo,
+                estado: estadoVenta, 
+                productos: resumenProductos, 
+                pendientes: resumenPendientes, 
+                medidas: getMedidasSummary(),
+                productosDetalle: productosVendidos // Detalle para la tabla historial
+            };
+
+            ventas.push(nuevaVenta);
+            localStorage.setItem('ventasDB', JSON.stringify(ventas));
+            
+            // Limpiar formulario y reiniciar la tabla
+            document.getElementById('registro-ventas-section').querySelectorAll('input:not([type="button"]), select, textarea').forEach(element => {
+                if (element.id === 'reg-talonario' || element.id === 'reg-nombre' || element.id === 'reg-celular' || element.id.startsWith('medida-')) {
+                    element.value = '';
+                } else if (element.id === 'reg-descuento' || element.id === 'reg-abono') {
+                    element.value = '0';
+                }
+            });
+            document.getElementById('reg-nivel-ciclo').value = 'todos';
+            document.getElementById('reg-metodo-pago').value = 'Efectivo';
+            
+            loadReciboRows();
+            calculateReciboTotal();
+            clearMedidas();
+            
+            // --- CAMBIO SOLICITADO: Redirigir directamente al Historial ---
+            showSection('historial');
+            alert(`✅ Venta #${reciboNo} registrada con éxito. Estado: ${estadoVenta}.`);
+        }
+
+        // --- 6. Funciones de HISTORIAL / TABLA ---
+
+        function descargarExcel() {
+            if (ventas.length === 0) {
+                alert('No hay datos en el historial para descargar.');
+                return;
+            }
+            
+            // 1. Crear encabezados base
+            let csvHeader = 'Recibo No,Fecha,Cliente,Celular,Ciclo/Nivel,Metodo de Pago,Descuento,Valor Total,Abono,Saldo,Estado,Medidas/Detalles';
+            
+            // 2. Determinar la máxima cantidad de productos en una venta para las columnas
+            let maxProducts = 0;
+            ventas.forEach(venta => {
+                if (venta.productosDetalle && venta.productosDetalle.length > maxProducts) {
+                    maxProducts = venta.productosDetalle.length;
+                }
+            });
+
+            // 3. Añadir encabezados dinámicos para cada producto
+            for (let i = 1; i <= maxProducts; i++) {
+                csvHeader += `,Producto ${i} (Cant x Nombre Talla),Precio Unitario ${i},Estado ${i} (ENTREGADO/PENDIENTE)`;
+            }
+            
+            let csv = csvHeader + '\n';
+            
+            ventas.forEach(venta => {
+                const escapeField = (field) => `"${String(field).replace(/"/g, '""')}"`;
+                
+                // 4. Datos base de la venta
+                let rowData = [
+                    venta.reciboNo || venta.id,
+                    venta.fecha,
+                    escapeField(venta.nombre),
+                    venta.celular,
+                    venta.nivel,
+                    venta.metodoPago,
+                    venta.descuento,
+                    venta.total,
+                    venta.abono,
+                    venta.saldo,
+                    venta.estado,
+                    escapeField(venta.medidas)
+                ];
+
+                // 5. Agregar columnas de productos
+                let productCols = [];
+                const productos = venta.productosDetalle || [];
+                
+                productos.forEach(p => {
+                    const productString = `${p.qty}x ${p.name} T${p.talla}`;
+                    const unitPrice = p.unitPrice;
+                    const status = p.delivered ? 'ENTREGADO' : 'PENDIENTE';
+                    
+                    productCols.push(escapeField(productString));
+                    productCols.push(unitPrice); 
+                    productCols.push(status);
+                });
+
+                // 6. Rellenar con columnas vacías si la venta tiene menos productos que el máximo
+                while (productCols.length < maxProducts * 3) {
+                    productCols.push('');
+                    productCols.push('');
+                    productCols.push('');
+                }
+                
+                rowData = rowData.concat(productCols);
+
+                const row = rowData.join(';'); // Usar ; como separador para compatibilidad regional
+                csv += row + '\n';
+            });
+
+            const blob = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `Historial_Ventas_Uniformes_${new Date().getFullYear()}${new Date().getMonth() + 1}${new Date().getDate()}.csv`);
+            link.click();
+        }
+
+        function imprimirHistorial() {
+            const printContent = document.getElementById('ventas-table').outerHTML;
+
+            // Estilos temporales para impresión
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write('<html><head><title>Imprimir Historial de Ventas</title>');
+            printWindow.document.write('<style>');
+            printWindow.document.write('body { font-family: Arial, sans-serif; margin: 20px; }');
+            printWindow.document.write('table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10px; }');
+            printWindow.document.write('th, td { border: 1px solid #000; padding: 5px; text-align: left; vertical-align: top; }');
+            printWindow.document.write('th { background-color: #f0f0f0; }');
+            printWindow.document.write('.product-detail-box, .status-entregado, .status-pendiente { font-size: 10px; }');
+            printWindow.document.write('.product-detail-box ul { list-style: none; padding: 0; margin: 0; }');
+            printWindow.document.write('button { display: none; }'); // Ocultar botones de acción en impresión
+            printWindow.document.write('</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write('<h2>Historial de Ventas - Uniformes Don Bosco</h2>');
+            printWindow.document.write(printContent);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        }
+
+        function loadVentasTable() {
+            const tableBody = document.querySelector('#ventas-table tbody');
+            tableBody.innerHTML = '';
+            
+            // Mostrar las ventas de la más reciente a la más antigua
+            ventas.slice().reverse().forEach(venta => { 
+                const row = tableBody.insertRow();
+                row.id = `hist-row-${venta.id}`;
+                row.insertCell().textContent = venta.reciboNo || 'N/A';
+                row.insertCell().textContent = venta.fecha;
+                row.insertCell().textContent = venta.nombre;
+                row.insertCell().textContent = formatCOP(venta.total);
+                row.insertCell().textContent = formatCOP(venta.abono);
+                row.insertCell().textContent = formatCOP(venta.saldo);
+                
+                const estadoCell = row.insertCell();
+                estadoCell.textContent = venta.estado;
+                estadoCell.className = venta.estado === 'Entregado' ? 'status-entregado' : 'status-pendiente';
+
+                // --- Columna Detalle de Productos ---
+                const detalleCell = row.insertCell();
+                detalleCell.className = 'product-detail-box';
+                
+                let detalleHTML = '<ul>';
+                
+                if (venta.productosDetalle && venta.productosDetalle.length > 0) {
+                    venta.productosDetalle.forEach(p => {
+                        const statusClass = p.delivered ? 'delivered-item' : 'pending-item';
+                        const statusIcon = p.delivered ? '✅' : '🔴';
+                        // Calculamos el saldo por artículo
+                        const itemSaldo = !p.delivered && venta.saldo > 0 ? (p.unitPrice * p.qty) : 0;
+                        // Nota: El cálculo de saldo por artículo es complejo, para la tabla mostramos si el artículo está pendiente/entregado.
+                        
+                        detalleHTML += `<li class="${statusClass}">${statusIcon} ${p.qty}x ${p.name} T${p.talla}</li>`;
+                    });
+                } else {
+                    detalleHTML += `<li>${venta.productos.replace(/ \| /g, '<br>')}</li>`;
+                }
+                
+                detalleHTML += '</ul>';
+                detalleCell.innerHTML = detalleHTML;
+                // ------------------------------------
+                
+                const medidasCell = row.insertCell();
+                medidasCell.textContent = venta.medidas === 'N/A' ? 'N/A' : venta.medidas.substring(0, 15) + '...';
+                medidasCell.title = venta.medidas;
+
+                const accionCell = row.insertCell();
+                accionCell.style.textAlign = 'center';
+                
+                if (venta.estado === 'Pendiente') {
+                    accionCell.innerHTML = `<button class="btn-delete" style="background-color: var(--color-success);" onclick="marcarEntregado(${venta.id})">Entregar Todo</button>`;
+                } else {
+                    accionCell.innerHTML = `<button class="btn-delete" onclick="deleteVenta(${venta.id})">Eliminar</button>`;
+                }
+
+            });
+        }
+
+        function marcarEntregado(ventaId) {
+            if (!confirm('¿Está seguro de que desea marcar esta venta como COMPLETAMENTE ENTREGADA? El saldo restante se asumirá como PAGADO.')) {
+                return;
+            }
+
+            const index = ventas.findIndex(v => v.id === ventaId);
+            if (index !== -1) {
+                // 1. Marcar estado general como Entregado
+                ventas[index].estado = 'Entregado';
+                ventas[index].pendientes = 'Ninguno';
+                
+                // Asumimos que al entregar todo, el saldo se cubre 
+                ventas[index].abono = ventas[index].total;
+                ventas[index].saldo = 0; 
+                
+                // 2. Actualizar el detalle de productos
+                if (ventas[index].productosDetalle) {
+                    ventas[index].productosDetalle = ventas[index].productosDetalle.map(p => ({
+                        ...p,
+                        delivered: true
+                    }));
+                }
+
+                localStorage.setItem('ventasDB', JSON.stringify(ventas));
+                loadVentasTable(); 
+            }
+        }
+
+        function deleteVenta(ventaId) {
+            if (confirm('¿Está seguro de que desea eliminar permanentemente esta venta?')) {
+                ventas = ventas.filter(v => v.id !== ventaId);
+                localStorage.setItem('ventasDB', JSON.stringify(ventas));
+                loadVentasTable();
+            }
+        }
+
+        function resetDatabase() {
+            if (confirm('¡ADVERTENCIA! ¿Está seguro de que desea ELIMINAR TODO EL HISTORIAL DE VENTAS? Esta acción es irreversible.')) {
+                ventas = [];
+                localStorage.removeItem('ventasDB');
+                loadVentasTable();
+                alert('Historial de ventas eliminado.');
+            }
+        }
+
+        // Funciones de Medidas/Detalles
+
+        function getMedidasSummary() {
+            const medidas = [
+                document.getElementById('medida-cadera').value.trim() && `Cadera: ${document.getElementById('medida-cadera').value.trim()}`,
+                document.getElementById('medida-busto').value.trim() && `Busto/Pecho: ${document.getElementById('medida-busto').value.trim()}`,
+                document.getElementById('medida-cintura').value.trim() && `Cintura: ${document.getElementById('medida-cintura').value.trim()}`,
+                document.getElementById('medida-largo').value.trim() && `Largo: ${document.getElementById('medida-largo').value.trim()}`,
+                document.getElementById('medida-ancho').value.trim() && `Ancho/A: ${document.getElementById('medida-ancho').value.trim()}`,
+                document.getElementById('medida-otros').value.trim() && `Otros/Especial: ${document.getElementById('medida-otros').value.trim()}`
+            ].filter(Boolean).join(' | ');
+
+            return medidas || 'N/A';
+        }
+
+        function clearMedidas() {
+            document.getElementById('medida-cadera').value = '';
+            document.getElementById('medida-busto').value = '';
+            document.getElementById('medida-cintura').value = '';
+            document.getElementById('medida-largo').value = '';
+            document.getElementById('medida-ancho').value = '';
+            document.getElementById('medida-otros').value = '';
+        }
+
+
+        // --- 7. Inicialización ---
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('inicio');
+        });
+    </script>
+</body>
+</html>
