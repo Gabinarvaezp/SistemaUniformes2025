@@ -598,8 +598,16 @@
             { name: "CAMISETA TIPO POLO", id: "CAMISETA_POLO", prices: { 10: 28000, 12: 30000, 14: 35000, 16: 38000, S: 38000, M: 40000, L: 40000, XL: 45000, XXL: 45000 }, nivel: 'bachillerato' },
             { name: "CAMISETA DEPORTIVA BACH", id: "CAMISETA_DEP_B", prices: { 10: 30000, 12: 30000, 14: 30000, 16: 30000, S: 30000, M: 35000, L: 35000, XL: 35000, XXL: 35000 }, nivel: 'bachillerato' },
             { name: "PANTALONETA BACH", id: "PANTALONETA_B", prices: { 10: 28000, 12: 28000, 14: 30000, 16: 30000, S: 30000, M: 32000, L: 32000, XL: 35000, XXL: 35000 }, nivel: 'bachillerato' },
-            // VERIFICACIÓN DE TALLAS: PANTALÓN NEGRO LINO SOLO TIENE TALLAS DE PANTALÓN (28 a 38)
-            { name: "PANTALÓN NEGRO LINO", id: "PANTALON_LINO", prices: { 28: 43000, 30: 55000, 32: 55000, 34: 55000, 36: 60000, 38: 60000 }, nivel: 'bachillerato' }, 
+            // **CORRECCIÓN AQUÍ:** Se incluyen las tallas 10, 12, 14, 16 y S, M además de las tallas de pantalón.
+            { 
+                name: "PANTALÓN NEGRO LINO", 
+                id: "PANTALON_LINO", 
+                prices: { 
+                    10: 40000, 12: 45000, 14: 50000, 16: 55000, S: 55000, M: 55000, // Tallas de ropa agregadas (Precios estimados)
+                    28: 43000, 30: 55000, 32: 55000, 34: 55000, 36: 60000, 38: 60000 
+                }, 
+                nivel: 'bachillerato' 
+            }, 
             { name: "JARDINERA BACH", id: "JARDINERA_B", prices: { 10: 80000, 12: 80000, 14: 85000, 16: 85000, S: 85000, M: 90000, L: 95000, XL: 95000, XXL: 95000 }, nivel: 'bachillerato' },
             { name: "SACO NIÑA", id: "SACO_NINA", prices: { 10: 72000, 12: 74000, 14: 75000, 16: 75000, S: 78000, M: 78000, L: 80000, XL: 80000, XXL: 80000 }, nivel: 'bachillerato' },
             { name: "BUSO BLANCO ML", id: "BUSO_BLANCO", prices: { 10: 45000, 12: 50000, 14: 50000, 16: 55000, S: 55000, M: 60000, L: 60000, XL: 60000, XXL: 60000 }, nivel: 'bachillerato' },
@@ -839,6 +847,7 @@
                      // Lógica de respaldo simple si la talla exacta no está definida para esa prenda.
                      const availableTallas = Object.keys(product.prices).map(t => ({talla: t, num: parseInt(t) || Infinity})).sort((a,b) => a.num - b.num);
                      if (availableTallas.length > 0) {
+                          // Busca la talla más cercana (aquí simplificado, toma la más pequeña disponible si no está la exacta)
                           finalTalla = availableTallas[0].talla; 
                           price = product.prices[finalTalla];
                      } else {
